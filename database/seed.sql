@@ -1,9 +1,9 @@
 USE apartment_listing_system;
 
 INSERT INTO users (username, password_hash, role) VALUES
-('admin', '$2a$10$adminhashedpassword', 'ADMIN'),
-('agent_john', '$2a$10$johnhashedpassword', 'AGENT'),
-('agent_mary', '$2a$10$maryhashedpassword', 'AGENT');
+('admin', 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', 'ADMIN'),
+('agent_john', 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', 'AGENT'),
+('agent_mary', 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', 'AGENT');
 
 INSERT INTO amenities (amenity_name) VALUES
 ('WiFi'),

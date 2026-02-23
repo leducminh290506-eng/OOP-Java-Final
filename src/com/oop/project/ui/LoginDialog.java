@@ -60,7 +60,7 @@ public class LoginDialog extends JFrame {
             this.dispose(); // Đóng cửa sổ Login
             
             // Mở màn hình chính (Đảm bảo bạn đã có class MainFrame)
-            // new MainFrame(user).setVisible(true); 
+            new MainFrame(user).setVisible(true); 
             
         } catch (AuthException ex) {
             // Hiển thị thông báo nếu đăng nhập thất bại (sai user/pass)

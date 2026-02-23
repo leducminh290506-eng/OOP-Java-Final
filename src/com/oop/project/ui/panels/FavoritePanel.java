@@ -1,5 +1,6 @@
 package com.oop.project.ui.panels;
 
+import com.oop.project.model.User;
 import com.oop.project.service.ApartmentService;
 import com.oop.project.ui.components.ApartmentTable;
 
@@ -9,11 +10,15 @@ import java.awt.*;
 public class FavoritePanel extends JPanel {
     private ApartmentService service;
     private ApartmentTable table;
+    private User currentUser;
 
-    public FavoritePanel() {
-        this.service = new ApartmentService();
+    // Sửa lỗi: Nhận service và user từ MainFrame truyền vào
+    public FavoritePanel(ApartmentService service, User user) {
+        this.service = service;
+        this.currentUser = user;
         setLayout(new BorderLayout());
         initComponents();
+        loadFavorites(); // Tự động load khi mở panel
     }
 
     private void initComponents() {
@@ -33,13 +38,15 @@ public class FavoritePanel extends JPanel {
     }
 
     private void loadFavorites() {
-        table.setData(service.getFavorites());
+        // Sửa lỗi: Truyền ID của user hiện tại vào service
+        table.setApartments(service.getFavorites(currentUser.getId()));
     }
 
     private void removeFavorite() {
-        int id = table.getSelectedApartmentId();
-        if (id != -1) {
-            service.toggleFavorite(id, false);
+        int apartmentId = table.getSelectedApartmentId();
+        if (apartmentId != -1) {
+            // Sửa lỗi: Truyền đủ 2 tham số userId và apartmentId
+            service.toggleFavorite(currentUser.getId(), apartmentId);
             loadFavorites();
             JOptionPane.showMessageDialog(this, "Removed from favorites!");
         } else {
