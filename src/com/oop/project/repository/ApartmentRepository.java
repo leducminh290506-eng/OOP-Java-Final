@@ -83,7 +83,7 @@ public class ApartmentRepository implements IRepository<Apartment, Integer> {
             rs.getInt("apartment_id"), rs.getString("listing_code"),
             rs.getString("address"), rs.getString("location"),
             rs.getDouble("price"), rs.getInt("bedrooms"),
-            rs.getInt("size_sqft"), ApartmentType.valueOf(rs.getString("category")),
+            rs.getInt("size_sqft"), ApartmentType.valueOf(rs.getString("category").toUpperCase()),
             rs.getInt("created_by")
         );
     }
