@@ -18,7 +18,7 @@ public class Apartment {
 
     /**
      * Constructor đầy đủ để khởi tạo căn hộ.
-     * Tự động thực hiện phân loại dựa trên giá ngay khi khởi tạo (FR-4.3).
+     * Tự động thực hiện phân loại dựa trên giá và diện tích ngay khi khởi tạo (FR-4.3).
      */
     public Apartment(int id, String listingCode, String address, String location, 
                      double price, int bedrooms, int area, ApartmentType type, int createdBy) {
@@ -33,17 +33,20 @@ public class Apartment {
         this.createdBy = createdBy;
         
         // Thực hiện phân loại tự động (FR-4.3)
-        this.category = classifyByPrice(price);
+        this.category = classifyByPriceAndArea(price, area);
     }
 
     /**
-     * Logic phân loại căn hộ dựa trên ngưỡng giá (FR-4.3).
-     * Ngưỡng: >= 2000 (Luxury), 700-1999 (Standard), < 700 (Budget).
+     * Logic phân loại căn hộ dựa trên giá và diện tích (FR-4.3).
+     * Quy tắc (thực tế):
+     * - Luxury nếu price >= 2000 hoặc area >= 1200
+     * - Standard nếu price >= 700 hoặc area >= 700
+     * - Budget còn lại
      */
-    private String classifyByPrice(double price) {
-        if (price >= 2000) {
+    private String classifyByPriceAndArea(double price, int area) {
+        if (price >= 2000 || area >= 1200) {
             return "Luxury";
-        } else if (price >= 700) {
+        } else if (price >= 700 || area >= 700) {
             return "Standard";
         } else {
             return "Budget";
@@ -82,6 +85,11 @@ public class Apartment {
     // --- SETTERS (Nếu cần cập nhật sau khi khởi tạo) ---
     public void setPrice(double price) {
         this.price = price;
-        this.category = classifyByPrice(price); // Cập nhật lại phân loại khi giá đổi
+        this.category = classifyByPriceAndArea(price, this.area); // Cập nhật lại phân loại khi giá đổi
+    }
+
+    public void setArea(int area) {
+        this.area = area;
+        this.category = classifyByPriceAndArea(this.price, area); // Cập nhật lại phân loại khi diện tích đổi
     }
 }

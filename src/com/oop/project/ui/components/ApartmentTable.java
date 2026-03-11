@@ -3,14 +3,18 @@ package com.oop.project.ui.components;
 import com.oop.project.model.Apartment;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.util.List;
 
 public class ApartmentTable extends JTable {
     private DefaultTableModel model;
+    private final TableRowSorter<DefaultTableModel> sorter;
 
     public ApartmentTable() {
         model = new DefaultTableModel(new String[]{"ID", "Mã", "Địa chỉ", "Giá", "Diện tích"}, 0);
         setModel(model);
+        sorter = new TableRowSorter<>(model);
+        setRowSorter(sorter);
     }
 
     

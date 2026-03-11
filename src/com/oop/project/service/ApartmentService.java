@@ -29,6 +29,18 @@ public class ApartmentService {
         return repository.findAllAmenityNames();
     }
 
+    public List<String> getAmenitiesForApartment(int apartmentId) {
+        return repository.findAmenityNamesByApartmentId(apartmentId);
+    }
+
+    public void setAmenitiesForApartment(int apartmentId, List<String> amenityNames) {
+        repository.setAmenitiesForApartment(apartmentId, amenityNames);
+    }
+
+    public List<Apartment> searchApartments(String keyword) {
+        return repository.searchByKeyword(keyword);
+    }
+
     public List<Apartment> getAllApartments() {
         return repository.findAll();
     }
@@ -69,11 +81,25 @@ public class ApartmentService {
                 "CREATE", "Created apartment " + apartment.getListingCode());
     }
 
+    public int createApartmentWithAmenities(Apartment apartment, List<String> amenityNames, int userId) {
+        int id = repository.saveAndReturnId(apartment);
+        repository.setAmenitiesForApartment(id, amenityNames);
+        logAuditByApartmentId(userId, id, "CREATE", "Created apartment " + apartment.getListingCode());
+        return id;
+    }
+
     /**
      * Cập nhật căn hộ và ghi log audit.
      */
     public void updateApartment(Apartment apartment, int userId) {
         repository.update(apartment);
+        logAuditByApartmentId(userId, apartment.getId(),
+                "UPDATE", "Updated apartment " + apartment.getListingCode());
+    }
+
+    public void updateApartmentWithAmenities(Apartment apartment, List<String> amenityNames, int userId) {
+        repository.update(apartment);
+        repository.setAmenitiesForApartment(apartment.getId(), amenityNames);
         logAuditByApartmentId(userId, apartment.getId(),
                 "UPDATE", "Updated apartment " + apartment.getListingCode());
     }

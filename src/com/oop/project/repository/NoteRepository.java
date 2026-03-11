@@ -51,11 +51,49 @@ public class NoteRepository implements IRepository<Note, Integer> {
     }
 
     @Override
-    public void update(Note entity) {}
+    public void update(Note entity) {
+        String sql = "UPDATE notes SET note_text = ? WHERE note_id = ?";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, entity.getNoteText());
+            stmt.setInt(2, entity.getId());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new DatabaseException("Error updating note", e);
+        }
+    }
     @Override
-    public void delete(Integer id) {}
+    public void delete(Integer id) {
+        String sql = "DELETE FROM notes WHERE note_id = ?";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new DatabaseException("Error deleting note", e);
+        }
+    }
     @Override
-    public Optional<Note> findById(Integer id) { return Optional.empty(); }
+    public Optional<Note> findById(Integer id) {
+        String sql = "SELECT * FROM notes WHERE note_id = ?";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(new Note(
+                            rs.getInt("note_id"),
+                            rs.getInt("apartment_id"),
+                            rs.getInt("user_id"),
+                            rs.getString("note_text")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Error finding note by id", e);
+        }
+        return Optional.empty();
+    }
     
     @Override
     public List<Note> findAll() { 

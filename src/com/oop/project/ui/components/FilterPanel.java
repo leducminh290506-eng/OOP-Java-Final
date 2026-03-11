@@ -2,6 +2,7 @@ package com.oop.project.ui.components;
 
 import com.oop.project.model.Apartment;
 import com.oop.project.service.ApartmentService;
+import com.oop.project.service.ExportService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -25,8 +26,11 @@ public class FilterPanel extends JPanel {
     private final JTextField txtMaxPrice;
     private final JTextField txtMinBedrooms;
     private final JTextField txtLocation;
+    private final JComboBox<String> cboCategory;
+    private final ExportService exportService = new ExportService();
 
     private final Map<String, JCheckBox> amenityCheckboxes = new LinkedHashMap<>();
+    private List<Apartment> lastFiltered = new ArrayList<>();
 
     public FilterPanel(ApartmentService service) {
         this.apartmentService = service;
@@ -67,6 +71,13 @@ public class FilterPanel extends JPanel {
         gbc.gridx = col++;
         filterBar.add(txtLocation, gbc);
 
+        // Category (FR-5.2)
+        gbc.gridx = col++;
+        filterBar.add(new JLabel("Category:"), gbc);
+        cboCategory = new JComboBox<>(new String[]{"All", "Luxury", "Standard", "Budget"});
+        gbc.gridx = col++;
+        filterBar.add(cboCategory, gbc);
+
         // Tiện ích (FR-2.1)
         gbc.gridx = 0; gbc.gridy = 1;
         filterBar.add(new JLabel("Tiện ích:"), gbc);
@@ -82,6 +93,13 @@ public class FilterPanel extends JPanel {
         gbc.gridx = 1; gbc.gridy = 1;
         gbc.gridwidth = 5; 
         filterBar.add(amenityPanel, gbc);
+
+        // Export (FR-4.1)
+        JButton btnExport = new JButton("Export CSV");
+        btnExport.addActionListener(e -> exportCsv());
+        gbc.gridx = 0; gbc.gridy = 2;
+        gbc.gridwidth = 6;
+        filterBar.add(btnExport, gbc);
 
         // --- PHẦN DƯỚI: BẢNG KẾT QUẢ ---
         add(filterBar, BorderLayout.NORTH);
@@ -114,6 +132,8 @@ public class FilterPanel extends JPanel {
         for (JCheckBox cb : amenityCheckboxes.values()) {
             cb.addItemListener(itemListener);
         }
+
+        cboCategory.addItemListener(itemListener);
     }
 
     /**
@@ -157,11 +177,44 @@ public class FilterPanel extends JPanel {
                     amenities
             );
 
+            String cat = (String) cboCategory.getSelectedItem();
+            if (cat != null && !"All".equalsIgnoreCase(cat)) {
+                List<Apartment> byCat = new ArrayList<>();
+                for (Apartment a : filtered) {
+                    if (cat.equalsIgnoreCase(a.getCategory())) byCat.add(a);
+                }
+                filtered = byCat;
+            }
+
+            lastFiltered = filtered;
             // Cập nhật kết quả lên bảng ngay lập tức
             table.setApartments(filtered);
         } catch (RuntimeException ex) {
             // Không để lỗi DB/SQL làm UI "im lặng" trắng bảng
             JOptionPane.showMessageDialog(this, "Lỗi lọc căn hộ: " + ex.getMessage());
+        }
+    }
+
+    private void exportCsv() {
+        if (lastFiltered == null || lastFiltered.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không có dữ liệu để export.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Export filtered listings to CSV");
+        int r = chooser.showSaveDialog(this);
+        if (r != JFileChooser.APPROVE_OPTION) return;
+
+        String path = chooser.getSelectedFile().getAbsolutePath();
+        if (!path.toLowerCase().endsWith(".csv")) path = path + ".csv";
+
+        try {
+            final String finalPath = path;
+            exportService.exportToCSV(lastFiltered, finalPath, apt -> apartmentService.getAmenitiesForApartment(apt.getId()));
+            JOptionPane.showMessageDialog(this, "Đã export: " + finalPath);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi export CSV: " + ex.getMessage());
         }
     }
 }

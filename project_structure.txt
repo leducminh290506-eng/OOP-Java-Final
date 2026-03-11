@@ -1,17 +1,15 @@
 APARTMENT-MANAGEMENT-SYSTEM/
 │   .gitignore
+│   .vscode/
+│   out/
 │   project_structure.txt
 │   README.md
 │
-├── lib/
-│       mysql-connector-j-9.6.0.jar
-│       README_LIBRARY.txt
-│
 ├── database/
-│       ERD_Diagram.mwb 
+│       ERD_Diagram.mwb
 │       ERD_Diagram.png
 │       schema.sql
-│       seed.sql 
+│       seed.sql
 │
 ├── docs/
 │       ai-usage.md
@@ -19,6 +17,10 @@ APARTMENT-MANAGEMENT-SYSTEM/
 │       project-info.md
 │       reflection.md
 │       requirements.md
+│
+├── lib/
+│       README_LIBRARY.txt
+│       mysql-connector-j-9.6.0.jar
 │
 └── src/
     └── com/
@@ -29,10 +31,9 @@ APARTMENT-MANAGEMENT-SYSTEM/
                 ├── exception/
                 │       AuthException.java
                 │       DatabaseException.java
-                │       Test.java
                 │
                 ├── model/
-                │       Apartment.java 
+                │       Apartment.java
                 │       ApartmentType.java
                 │       Note.java
                 │       Role.java
@@ -48,20 +49,23 @@ APARTMENT-MANAGEMENT-SYSTEM/
                 │       ApartmentService.java
                 │       AuthService.java
                 │       ExportService.java
-                │       StatisticsService.java 
+                │       StatisticsService.java
                 │
                 ├── ui/
                 │   │   LoginDialog.java
-                │   │   MainFrame.java  
+                │   │   MainFrame.java
                 │   │
                 │   ├── components/
                 │   │       ApartmentTable.java
-                │   │       FilterPanel.java  
+                │   │       FilterPanel.java
                 │   │
                 │   └── panels/
-                │           DashboardPanel.java 
+                │           ApartmentDetailDialog.java
+                │           DashboardPanel.java
                 │           FavoritePanel.java
                 │           ListingPanel.java
+                │           NotesDialog.java
+                │           SystemLogPanel.java
                 │
                 └── util/
                         Constants.java
