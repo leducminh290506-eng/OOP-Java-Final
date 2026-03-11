@@ -9,7 +9,9 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * FilterPanel - Cung cấp bộ lọc nâng cao cho căn hộ.
@@ -24,16 +26,16 @@ public class FilterPanel extends JPanel {
     private final JTextField txtMinBedrooms;
     private final JTextField txtLocation;
 
-    private final JCheckBox chkWifi;
-    private final JCheckBox chkParking;
-    private final JCheckBox chkGym;
-    private final JCheckBox chkPool;
+    private final Map<String, JCheckBox> amenityCheckboxes = new LinkedHashMap<>();
 
     public FilterPanel(ApartmentService service) {
         this.apartmentService = service;
         this.table = new ApartmentTable();
 
         setLayout(new BorderLayout());
+
+        // đảm bảo DB có liên kết apartment_amenities để lọc theo tiện ích không bị rỗng
+        apartmentService.ensureApartmentAmenitiesIntegrated();
         
         // --- PHẦN TRÊN: THANH CÔNG CỤ LỌC ---
         JPanel filterBar = new JPanel(new GridBagLayout());
@@ -70,15 +72,12 @@ public class FilterPanel extends JPanel {
         filterBar.add(new JLabel("Tiện ích:"), gbc);
 
         JPanel amenityPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        chkWifi    = new JCheckBox("WiFi");
-        chkParking = new JCheckBox("Bãi đậu xe");
-        chkGym     = new JCheckBox("Phòng Gym");
-        chkPool    = new JCheckBox("Hồ bơi");
-        
-        amenityPanel.add(chkWifi);
-        amenityPanel.add(chkParking);
-        amenityPanel.add(chkGym);
-        amenityPanel.add(chkPool);
+        List<String> amenityNames = apartmentService.getAllAmenityNames();
+        for (String name : amenityNames) {
+            JCheckBox cb = new JCheckBox(name);
+            amenityCheckboxes.put(name, cb);
+            amenityPanel.add(cb);
+        }
 
         gbc.gridx = 1; gbc.gridy = 1;
         gbc.gridwidth = 5; 
@@ -112,10 +111,9 @@ public class FilterPanel extends JPanel {
 
         // Lắng nghe sự thay đổi trên các CheckBox
         ItemListener itemListener = e -> reloadData();
-        chkWifi.addItemListener(itemListener);
-        chkParking.addItemListener(itemListener);
-        chkGym.addItemListener(itemListener);
-        chkPool.addItemListener(itemListener);
+        for (JCheckBox cb : amenityCheckboxes.values()) {
+            cb.addItemListener(itemListener);
+        }
     }
 
     /**
@@ -144,20 +142,26 @@ public class FilterPanel extends JPanel {
 
         // Xử lý tiện ích
         List<String> amenities = new ArrayList<>();
-        if (chkWifi.isSelected())    amenities.add("WiFi");
-        if (chkParking.isSelected()) amenities.add("Parking");
-        if (chkGym.isSelected())     amenities.add("Gym");
-        if (chkPool.isSelected())    amenities.add("Swimming Pool");
+        for (Map.Entry<String, JCheckBox> e : amenityCheckboxes.entrySet()) {
+            if (e.getValue().isSelected()) {
+                amenities.add(e.getKey());
+            }
+        }
 
-        // Gọi Service thực hiện lọc phức hợp (Compound Boolean)
-        List<Apartment> filtered = apartmentService.filterApartments(
-                maxPrice,
-                minBedrooms,
-                location.isEmpty() ? null : location,
-                amenities
-        );
-        
-        // Cập nhật kết quả lên bảng ngay lập tức
-        table.setApartments(filtered);
+        try {
+            // Gọi Service thực hiện lọc phức hợp (Compound Boolean)
+            List<Apartment> filtered = apartmentService.filterApartments(
+                    maxPrice,
+                    minBedrooms,
+                    location.isEmpty() ? null : location,
+                    amenities
+            );
+
+            // Cập nhật kết quả lên bảng ngay lập tức
+            table.setApartments(filtered);
+        } catch (RuntimeException ex) {
+            // Không để lỗi DB/SQL làm UI "im lặng" trắng bảng
+            JOptionPane.showMessageDialog(this, "Lỗi lọc căn hộ: " + ex.getMessage());
+        }
     }
 }

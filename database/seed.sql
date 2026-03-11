@@ -6,6 +6,7 @@ TRUNCATE TABLE audit_logs;
 TRUNCATE TABLE login_logs;
 TRUNCATE TABLE notes;
 TRUNCATE TABLE favorites;
+TRUNCATE TABLE apartment_amenities;
 TRUNCATE TABLE apartments;
 TRUNCATE TABLE amenities;
 TRUNCATE TABLE users;
@@ -59,6 +60,37 @@ INSERT INTO apartments (listing_code, address, location, price, bedrooms, size_s
 ('APT-022', 'Indochina Plaza, 241 Xuân Thủy', 'Cầu Giấy, Hà Nội', 1900.00, 3, 1500, 'DUPLEX', 8),
 ('APT-023', 'Landmark 81, Vinhomes Central Park', 'Bình Thạnh, TP.HCM', 4500.00, 4, 2500, 'PENTHOUSE', 9),
 ('APT-024', 'Đảo Kim Cương (Diamond Island)', 'Quận 2, TP.HCM', 4000.00, 4, 2200, 'PENTHOUSE', 10);
+
+-- 5. Map amenities to apartments (fix filter-by-amenities returning empty)
+-- Amenity IDs (by insert order): 1 WiFi, 2 Air Conditioning, 3 Parking, 4 Swimming Pool, 5 Gym, 6 Elevator, 7 Park, 8 School
+INSERT INTO apartment_amenities (apartment_id, amenity_id) VALUES
+-- APT-005 .. APT-008 (ids 1..4): budget/studio
+(1, 1), (1, 3),
+(2, 1), (2, 2), (2, 3),
+(3, 1),
+(4, 1), (4, 3), (4, 6), (4, 4),
+
+-- APT-009 .. APT-011 (ids 5..7): one bedroom
+(5, 1), (5, 2), (5, 6),
+(6, 1), (6, 3), (6, 4), (6, 5),
+(7, 1), (7, 2), (7, 5),
+
+-- APT-012 .. APT-017 (ids 8..13): standard/two bedroom
+(8, 1), (8, 3), (8, 6), (8, 7),
+(9, 1), (9, 2), (9, 3), (9, 4), (9, 5), (9, 6),
+(10, 1), (10, 3), (10, 6),
+(11, 1), (11, 2), (11, 4), (11, 5), (11, 6),
+(12, 1), (12, 3), (12, 6),
+(13, 1), (13, 2), (13, 3), (13, 6),
+
+-- APT-018 .. APT-024 (ids 14..20): luxury/duplex/penthouse
+(14, 1), (14, 2), (14, 3), (14, 4), (14, 5), (14, 6),
+(15, 1), (15, 2), (15, 4), (15, 5), (15, 6),
+(16, 1), (16, 2), (16, 3), (16, 4), (16, 6),
+(17, 1), (17, 2), (17, 3), (17, 5), (17, 6),
+(18, 1), (18, 2), (18, 3), (18, 4), (18, 5), (18, 6),
+(19, 1), (19, 2), (19, 3), (19, 4), (19, 5), (19, 6),
+(20, 1), (20, 2), (20, 3), (20, 4), (20, 5), (20, 6);
 
 
 INSERT INTO favorites (user_id, apartment_id) VALUES

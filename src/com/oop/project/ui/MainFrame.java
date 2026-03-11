@@ -3,6 +3,8 @@ package com.oop.project.ui;
 import com.oop.project.model.User;
 import com.oop.project.model.Role;
 import com.oop.project.repository.ApartmentRepository;
+import com.oop.project.repository.UserRepository;
+import com.oop.project.service.AuthService;
 import com.oop.project.service.ApartmentService;
 import com.oop.project.ui.components.FilterPanel;
 import com.oop.project.ui.panels.DashboardPanel;
@@ -12,6 +14,8 @@ import com.oop.project.ui.panels.SystemLogPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 /**
  * MainFrame - Giao diện chính của hệ thống quản lý căn hộ.
@@ -21,9 +25,14 @@ public class MainFrame extends JFrame {
     private User currentUser;
     private ApartmentService apartmentService;
     private JTabbedPane tabbedPane;
+    private final AuthService authService;
+    private boolean isLoggingOut = false;
 
     public MainFrame(User user) {
         this.currentUser = user;
+
+        // AuthService để ghi log LOGOUT vào system logs
+        this.authService = new AuthService(new UserRepository());
         
         // Khởi tạo tầng dữ liệu tập trung (Sử dụng Repository hiện tại)
         ApartmentRepository repo = new ApartmentRepository();
@@ -34,6 +43,16 @@ public class MainFrame extends JFrame {
         setSize(1100, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        // Nếu user đóng cửa sổ trực tiếp thì vẫn ghi log LOGOUT
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (!isLoggingOut) {
+                    authService.logout(currentUser);
+                }
+            }
+        });
         
         // Khởi tạo các thành phần giao diện
         initComponents();
@@ -85,7 +104,18 @@ public class MainFrame extends JFrame {
 
         statusPanel.add(lblUser);
         statusPanel.add(lblRole);
+
+        JButton btnLogout = new JButton("Logout");
+        btnLogout.addActionListener(e -> handleLogout());
+        statusPanel.add(btnLogout);
         
         add(statusPanel, BorderLayout.SOUTH);
+    }
+
+    private void handleLogout() {
+        isLoggingOut = true;
+        authService.logout(currentUser); // ghi vào login_logs (System Logs)
+        dispose();
+        SwingUtilities.invokeLater(() -> new LoginDialog().setVisible(true));
     }
 }

@@ -13,6 +13,74 @@ import java.util.*;
  */
 public class ApartmentRepository implements IRepository<Apartment, Integer> {
 
+    public List<String> findAllAmenityNames() {
+        List<String> names = new ArrayList<>();
+        String sql = "SELECT amenity_name FROM amenities ORDER BY amenity_name";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                names.add(rs.getString("amenity_name"));
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Error fetching amenities", e);
+        }
+        return names;
+    }
+
+    /**
+     * Fallback: nếu DB chưa có liên kết apartment_amenities thì tự gắn tạm
+     * để bộ lọc theo tiện ích hoạt động (không ghi đè nếu đã có dữ liệu).
+     */
+    public void seedApartmentAmenitiesIfEmpty() {
+        String countSql = "SELECT COUNT(*) AS c FROM apartment_amenities";
+        String aptSql = "SELECT apartment_id FROM apartments ORDER BY apartment_id";
+        String amSql = "SELECT amenity_id FROM amenities ORDER BY amenity_id";
+        String insertSql = "INSERT IGNORE INTO apartment_amenities (apartment_id, amenity_id) VALUES (?, ?)";
+
+        try (Connection conn = DatabaseConnection.getInstance().getConnection()) {
+            int currentCount = 0;
+            try (PreparedStatement stmt = conn.prepareStatement(countSql);
+                 ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) currentCount = rs.getInt("c");
+            }
+            if (currentCount > 0) return;
+
+            List<Integer> apartmentIds = new ArrayList<>();
+            try (PreparedStatement stmt = conn.prepareStatement(aptSql);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) apartmentIds.add(rs.getInt("apartment_id"));
+            }
+
+            List<Integer> amenityIds = new ArrayList<>();
+            try (PreparedStatement stmt = conn.prepareStatement(amSql);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) amenityIds.add(rs.getInt("amenity_id"));
+            }
+
+            if (apartmentIds.isEmpty() || amenityIds.isEmpty()) return;
+
+            Random rnd = new Random();
+            try (PreparedStatement ins = conn.prepareStatement(insertSql)) {
+                for (Integer aptId : apartmentIds) {
+                    int k = Math.min(amenityIds.size(), 2 + rnd.nextInt(Math.min(3, amenityIds.size()))); // 2..4
+                    Set<Integer> picked = new HashSet<>();
+                    while (picked.size() < k) {
+                        picked.add(amenityIds.get(rnd.nextInt(amenityIds.size())));
+                    }
+                    for (Integer amId : picked) {
+                        ins.setInt(1, aptId);
+                        ins.setInt(2, amId);
+                        ins.addBatch();
+                    }
+                }
+                ins.executeBatch();
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Error seeding apartment amenities", e);
+        }
+    }
+
     @Override
     public void save(Apartment apt) {
         String sql = "INSERT INTO apartments (listing_code, address, location, price, bedrooms, size_sqft, category, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";

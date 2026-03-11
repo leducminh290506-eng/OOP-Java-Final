@@ -21,6 +21,14 @@ public class ApartmentService {
         this.repository = repository;
     }
 
+    public void ensureApartmentAmenitiesIntegrated() {
+        repository.seedApartmentAmenitiesIfEmpty();
+    }
+
+    public List<String> getAllAmenityNames() {
+        return repository.findAllAmenityNames();
+    }
+
     public List<Apartment> getAllApartments() {
         return repository.findAll();
     }

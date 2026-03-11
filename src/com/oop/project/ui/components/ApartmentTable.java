@@ -13,7 +13,7 @@ public class ApartmentTable extends JTable {
         setModel(model);
     }
 
-    // Xóa lỗi "The method setApartments is undefined" [image_e4395d.png]
+    
     public void setApartments(List<Apartment> apartments) {
         model.setRowCount(0);
         for (Apartment apt : apartments) {
