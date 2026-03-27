@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections; // Import thêm cái này
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -97,7 +97,7 @@ public class NoteRepository implements IRepository<Note, Integer> {
     
     @Override
     public List<Note> findAll() { 
-        // Thay List.of() bằng Collections.emptyList() để chạy trên Java 8
+        // return empty list
         return Collections.emptyList(); 
     }
 }

@@ -12,13 +12,13 @@ public class FavoritePanel extends JPanel {
     private ApartmentTable table;
     private User currentUser;
 
-    // Sửa lỗi: Nhận service và user từ MainFrame truyền vào
+    // service and user info are needed to load and manage favorites
     public FavoritePanel(ApartmentService service, User user) {
         this.service = service;
         this.currentUser = user;
         setLayout(new BorderLayout());
         initComponents();
-        loadFavorites(); // Tự động load khi mở panel
+        loadFavorites(); 
     }
 
     private void initComponents() {
@@ -38,14 +38,14 @@ public class FavoritePanel extends JPanel {
     }
 
     private void loadFavorites() {
-        // Sửa lỗi: Truyền ID của user hiện tại vào service
+        // add id to get favorites for current user
         table.setApartments(service.getFavorites(currentUser.getId()));
     }
 
     private void removeFavorite() {
         int apartmentId = table.getSelectedApartmentId();
         if (apartmentId != -1) {
-            // Sửa lỗi: Truyền đủ 2 tham số userId và apartmentId
+            // add id and call logic to toggle favorite status
             service.toggleFavorite(currentUser.getId(), apartmentId);
             loadFavorites();
             JOptionPane.showMessageDialog(this, "Removed from favorites!");

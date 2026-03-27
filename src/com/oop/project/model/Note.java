@@ -1,8 +1,8 @@
 package com.oop.project.model;
 
 /**
- * Note - Ghi chú nội bộ cho từng căn hộ (FR-3.2, FR-3.4).
- * Mapping với bảng "notes" trong Database:
+ * note model to represent user notes on apartments
+ * fields:
  *  - note_id
  *  - apartment_id
  *  - user_id

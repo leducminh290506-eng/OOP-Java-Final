@@ -2,112 +2,186 @@ package com.oop.project.ui.panels;
 
 import com.oop.project.service.StatisticsService;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Map;
 
 /**
- * DashboardPanel - Màn hình thống kê tổng quan (FR-5.4).
- * Hiển thị các chỉ số về giá, khu vực và mức độ yêu thích của khách hàng.
+ * DashboardPanel - Màn hình thống kê tổng quan.
  */
 public class DashboardPanel extends JPanel {
     private StatisticsService statService;
-    
+
     private JLabel lblTotal;
     private JLabel lblAvgPrice;
     private JLabel lblFavorites;
-    private JLabel lblByLocation;
+    private JPanel locationContentPanel; // Panel chứa danh sách location động
 
     public DashboardPanel() {
         this.statService = new StatisticsService();
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(20, 20));
+        setBackground(new Color(245, 247, 250)); // Nền xám nhạt đồng bộ với các tab khác
+        setBorder(new EmptyBorder(25, 25, 25, 25));
+
         initComponents();
         refreshData();
     }
 
     private void initComponents() {
-        // --- PHẦN TRUNG TÂM: CÁC CHỈ SỐ CHÍNH ---
-        JPanel centerPanel = new JPanel(new GridLayout(3, 1, 10, 10));
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        // --- 1. HEADER & NÚT REFRESH ---
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setOpaque(false);
 
-        lblTotal = new JLabel("Total Apartments: 0");
-        lblTotal.setFont(new Font("Arial", Font.BOLD, 18));
-        
-        lblAvgPrice = new JLabel("Average Price: $0.0");
-        lblAvgPrice.setFont(new Font("Arial", Font.BOLD, 18));
+        JLabel lblHeader = new JLabel("📊 Thống Kê Tổng Quan");
+        lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 26));
+        lblHeader.setForeground(new Color(44, 62, 80));
 
-        lblFavorites = new JLabel("Total Favorites: 0");
-        lblFavorites.setFont(new Font("Arial", Font.BOLD, 18));
-
-        centerPanel.add(lblTotal);
-        centerPanel.add(lblAvgPrice);
-        centerPanel.add(lblFavorites);
-
-        // --- TIÊU ĐỀ ---
-        JLabel lblHeader = new JLabel("DASHBOARD OVERVIEW", SwingConstants.CENTER);
-        lblHeader.setFont(new Font("Arial", Font.BOLD, 22));
-        lblHeader.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
-        add(lblHeader, BorderLayout.NORTH);
-        
-        add(centerPanel, BorderLayout.CENTER);
-
-        // --- PHẦN DƯỚI: THỐNG KÊ CHI TIẾT THEO VỊ TRÍ ---
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 20));
-        
-        bottomPanel.add(new JLabel("<html><b>Listings per location:</b></html>"), BorderLayout.NORTH);
-        
-        lblByLocation = new JLabel("By location: (no data)");
-        lblByLocation.setVerticalAlignment(SwingConstants.TOP);
-        lblByLocation.setFont(new Font("Arial", Font.PLAIN, 14));
-        
-        // Dùng JScrollPane nếu danh sách địa điểm quá dài
-        JScrollPane scrollLocation = new JScrollPane(lblByLocation);
-        scrollLocation.setPreferredSize(new Dimension(0, 150));
-        scrollLocation.setBorder(BorderFactory.createEtchedBorder());
-        bottomPanel.add(scrollLocation, BorderLayout.CENTER);
-
-        // Nút làm mới dữ liệu
-        JButton btnRefresh = new JButton("Refresh Statistics");
-        btnRefresh.setFont(new Font("Arial", Font.PLAIN, 14));
+        JButton btnRefresh = new JButton("🔄 Làm mới");
+        btnRefresh.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnRefresh.setBackground(new Color(52, 152, 219));
+        btnRefresh.setForeground(Color.WHITE);
+        btnRefresh.setFocusPainted(false);
+        btnRefresh.setBorderPainted(false);
+        btnRefresh.setOpaque(true);
+        btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRefresh.setPreferredSize(new Dimension(130, 40));
         btnRefresh.addActionListener(e -> refreshData());
-        bottomPanel.add(btnRefresh, BorderLayout.SOUTH);
 
-        add(bottomPanel, BorderLayout.SOUTH);
+        headerPanel.add(lblHeader, BorderLayout.WEST);
+        headerPanel.add(btnRefresh, BorderLayout.EAST);
+        add(headerPanel, BorderLayout.NORTH);
+
+        // --- 2. CENTER: CÁC THẺ THỐNG KÊ (CARDS) ---
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
+        cardsPanel.setOpaque(false);
+        cardsPanel.setPreferredSize(new Dimension(0, 140));
+
+        lblTotal = new JLabel("0");
+        lblAvgPrice = new JLabel("$0.0");
+        lblFavorites = new JLabel("0");
+
+        // Tạo 3 thẻ với 3 màu khác nhau
+        cardsPanel.add(createStatCard("Tổng Căn Hộ", "🏢", new Color(41, 128, 185), lblTotal));
+        cardsPanel.add(createStatCard("Giá Trung Bình", "💵", new Color(39, 174, 96), lblAvgPrice));
+        cardsPanel.add(createStatCard("Lượt Yêu Thích", "❤️", new Color(142, 68, 173), lblFavorites));
+
+        // --- 3. BOTTOM: THỐNG KÊ THEO KHU VỰC ---
+        JPanel bottomWrapper = new JPanel(new BorderLayout(0, 15));
+        bottomWrapper.setOpaque(false);
+        bottomWrapper.setBorder(new EmptyBorder(20, 0, 0, 0));
+
+        JLabel lblLocationTitle = new JLabel("📍 Mật độ danh sách theo khu vực");
+        lblLocationTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblLocationTitle.setForeground(new Color(44, 62, 80));
+        bottomWrapper.add(lblLocationTitle, BorderLayout.NORTH);
+
+        locationContentPanel = new JPanel();
+        locationContentPanel.setLayout(new BoxLayout(locationContentPanel, BoxLayout.Y_AXIS));
+        locationContentPanel.setBackground(Color.WHITE);
+
+        JScrollPane scrollLocation = new JScrollPane(locationContentPanel);
+        scrollLocation.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        scrollLocation.getVerticalScrollBar().setUnitIncrement(16);
+        bottomWrapper.add(scrollLocation, BorderLayout.CENTER);
+
+        // Gom Cards và Bottom lại để set layout cho chuẩn
+        JPanel mainContent = new JPanel(new BorderLayout());
+        mainContent.setOpaque(false);
+        mainContent.add(cardsPanel, BorderLayout.NORTH);
+        mainContent.add(bottomWrapper, BorderLayout.CENTER);
+
+        add(mainContent, BorderLayout.CENTER);
+    }
+
+    // --- HÀM TIỆN ÍCH: TẠO THẺ THỐNG KÊ (CARD) ---
+    private JPanel createStatCard(String title, String icon, Color bgColor, JLabel lblValue) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(bgColor);
+        card.setBorder(new EmptyBorder(15, 20, 15, 20));
+
+        // Bo góc giả lập (Nếu có thư viện ngoài thì sẽ đẹp hơn, nhưng Swing gốc thì dùng viền mỏng)
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(bgColor.darker(), 1),
+                new EmptyBorder(15, 20, 15, 20)
+        ));
+
+        // Tiêu đề & Icon
+        JPanel topPart = new JPanel(new BorderLayout());
+        topPart.setOpaque(false);
+        
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblTitle.setForeground(new Color(255, 255, 255, 210)); // Trắng hơi mờ
+
+        JLabel lblIcon = new JLabel(icon);
+        lblIcon.setFont(new Font("Segoe UI", Font.PLAIN, 28));
+
+        topPart.add(lblTitle, BorderLayout.WEST);
+        topPart.add(lblIcon, BorderLayout.EAST);
+
+        // Giá trị
+        lblValue.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        lblValue.setForeground(Color.WHITE);
+
+        card.add(topPart, BorderLayout.NORTH);
+        card.add(lblValue, BorderLayout.SOUTH);
+
+        return card;
     }
 
     /**
-     * Cập nhật dữ liệu từ StatisticsService lên giao diện (FR-5.4).
+     * Cập nhật dữ liệu từ StatisticsService lên giao diện.
      */
     public void refreshData() {
         try {
-            // Lấy dữ liệu từ tầng Service
             int total = statService.getTotalApartments();
             double avg = statService.getAveragePrice();
             int totalFav = statService.getTotalFavorites();
             Map<String, Long> byLocation = statService.getCountByLocation();
 
-            // Cập nhật các nhãn văn bản
-            lblTotal.setText("Total Apartments: " + total);
-            lblAvgPrice.setText("Average Price: $" + String.format("%.2f", avg));
-            lblFavorites.setText("Total Favorites: " + totalFav);
+            lblTotal.setText(String.valueOf(total));
+            lblAvgPrice.setText(String.format("$%,.2f", avg));
+            lblFavorites.setText(String.valueOf(totalFav));
 
-            // Xử lý hiển thị danh sách khu vực bằng HTML (FR-5.4)
+            // Render lại danh sách khu vực
+            locationContentPanel.removeAll();
+
             if (byLocation == null || byLocation.isEmpty()) {
-                lblByLocation.setText("<html><i style='color:gray;'>By location: (no data)</i></html>");
+                JLabel emptyLabel = new JLabel("Chưa có dữ liệu khu vực");
+                emptyLabel.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+                emptyLabel.setBorder(new EmptyBorder(20, 20, 20, 20));
+                emptyLabel.setForeground(Color.GRAY);
+                locationContentPanel.add(emptyLabel);
             } else {
-                StringBuilder html = new StringBuilder("<html><ul style='margin-left: 10px;'>");
-                byLocation.forEach((loc, count) ->
-                        html.append("<li><b>")
-                            .append(loc)
-                            .append("</b>: ")
-                            .append(count)
-                            .append(" listings</li>"));
-                html.append("</ul></html>");
-                lblByLocation.setText(html.toString());
+                for (Map.Entry<String, Long> entry : byLocation.entrySet()) {
+                    JPanel row = new JPanel(new BorderLayout());
+                    row.setBackground(Color.WHITE);
+                    row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45)); // Chiều cao cố định cho mỗi hàng
+                    row.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 240, 240)), // Kẻ vạch dưới
+                            new EmptyBorder(10, 20, 10, 20)
+                    ));
+
+                    JLabel lblLoc = new JLabel(entry.getKey());
+                    lblLoc.setFont(new Font("Segoe UI", Font.BOLD, 15));
+                    lblLoc.setForeground(new Color(44, 62, 80));
+
+                    JLabel lblCount = new JLabel(entry.getValue() + " listings");
+                    lblCount.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                    lblCount.setForeground(new Color(127, 140, 141));
+
+                    row.add(lblLoc, BorderLayout.WEST);
+                    row.add(lblCount, BorderLayout.EAST);
+                    locationContentPanel.add(row);
+                }
             }
+
+            // Ép Swing vẽ lại giao diện sau khi thêm bớt Component
+            locationContentPanel.revalidate();
+            locationContentPanel.repaint();
+
         } catch (Exception e) {
-            // Tránh vỡ giao diện nếu lỗi database
-            System.err.println("Dashboard Refresh Error: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi cập nhật Dashboard: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }

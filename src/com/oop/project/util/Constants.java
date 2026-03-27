@@ -8,5 +8,5 @@ public class Constants {
     public static final String DB_USER = "root"; 
     
     // Nếu không đặt mật khẩu, hãy để chuỗi rỗng như thế này:
-    public static final String DB_PASSWORD = "Leducminh_2006"; 
+    public static final String DB_PASSWORD = "khangtrann82"; 
 }
