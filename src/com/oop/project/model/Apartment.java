@@ -1,5 +1,4 @@
 package com.oop.project.model;
-
 /**
  * Model Apartment - Đại diện cho thực thể căn hộ trong hệ thống.
  * Đã tích hợp logic phân loại tự động (FR-4.3) và các hàm bổ trợ cho UI/Export.
@@ -93,3 +92,4 @@ public class Apartment {
         this.category = classifyByPriceAndArea(this.price, area); // Cập nhật lại phân loại khi diện tích đổi
     }
 }
+

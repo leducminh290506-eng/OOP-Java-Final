@@ -2,446 +2,323 @@ package com.oop.project.ui.panels;
 
 import com.oop.project.model.Apartment;
 import com.oop.project.model.ApartmentType;
-import com.oop.project.model.Note;
-import com.oop.project.model.Role;
 import com.oop.project.model.User;
-import com.oop.project.repository.NoteRepository;
 import com.oop.project.service.ApartmentService;
-import com.oop.project.ui.components.ApartmentTable;
+import com.oop.project.ui.components.ApartmentDetailDialog;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
-/**
- * ListingPanel - Quản lý danh sách căn hộ.
- * - Tích hợp phân quyền Admin cho chức năng xóa (FR-0.4).
- * - Hỗ trợ đánh dấu yêu thích và ghi chú nội bộ (FR-3).
- */
 public class ListingPanel extends JPanel {
-
-    private final ApartmentService apartmentService;
+    private final ApartmentService service;
     private final User currentUser;
+    private JTable table;
+    private DefaultTableModel tableModel;
 
-    private final ApartmentTable table;
-    private final JTextField txtMinPrice;
-    private final JTextField txtMaxPrice;
-    private final JTextField txtSearch;
-    private final JComboBox<String> cboCategory;
+    private JTextField txtSearch, txtPriceFrom, txtPriceTo;
+    private JComboBox<String> cbCategory, cbFilterLocation;
 
-    private final NoteRepository noteRepository = new NoteRepository();
+    public static final String[] PROVINCES_FORM = {
+        "Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu", "Bắc Ninh", "Bến Tre", "Bình Định", "Bình Dương", "Bình Phước", "Bình Thuận", "Cà Mau", "Cao Bằng", "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Giang", "Hà Nam", "Hà Tĩnh", "Hải Dương", "Hậu Giang", "Hòa Bình", "Hưng Yên", "Khánh Hòa", "Kiên Giang", "Kon Tum", "Lai Châu", "Lâm Đồng", "Lạng Sơn", "Lào Cai", "Long An", "Nam Định", "Nghệ An", "Ninh Bình", "Ninh Thuận", "Phú Thọ", "Phú Yên", "Quảng Bình", "Quảng Nam", "Quảng Ngãi", "Quảng Ninh", "Quảng Trị", "Sóc Trăng", "Sơn La", "Tây Ninh", "Thái Bình", "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang", "Trà Vinh", "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
+    };
+    public static final String[] AMENITIES = {
+        "WiFi", "Swimming Pool", "Gym", "Parking", "Security 24/7", "Balcony", "Elevator", "Air Conditioning", "BBQ Area", "Playground"
+    };
 
     public ListingPanel(ApartmentService service, User user) {
-        this.apartmentService = service;
+        this.service = service;
         this.currentUser = user;
+        setLayout(new BorderLayout(15, 15));
+        setBorder(new EmptyBorder(20, 20, 20, 20));
+        setBackground(Color.WHITE);
 
-        setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 4, 4, 4);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        initComponents();
+        loadData();
+    }
 
-        // --- HÀNG 0: BỘ LỌC GIÁ NHANH ---
-        JLabel lblMin = new JLabel("Giá từ:");
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
-        add(lblMin, gbc);
+    private void initComponents() {
+        // ========================================================
+        // 1. THANH TÌM KIẾM & BỘ LỌC
+        // ========================================================
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 10));
+        filterPanel.setOpaque(false);
 
-        txtMinPrice = new JTextField(8);
-        gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 0.2;
-        add(txtMinPrice, gbc);
+        txtSearch = new JTextField(12);
+        
+        String[] provincesFilter = new String[PROVINCES_FORM.length + 1];
+        provincesFilter[0] = "All Locations";
+        System.arraycopy(PROVINCES_FORM, 0, provincesFilter, 1, PROVINCES_FORM.length);
+        cbFilterLocation = new JComboBox<>(provincesFilter);
+        
+        txtPriceFrom = new JTextField(5);
+        txtPriceTo = new JTextField(5);
+        cbCategory = new JComboBox<>(new String[]{"All Types", "LUXURY", "STANDARD", "BUDGET"});
+        
+        JButton btnFilter = new JButton("Search & Filter");
+        btnFilter.setBackground(new Color(44, 62, 80));
+        btnFilter.setForeground(Color.WHITE);
+        btnFilter.setFocusPainted(false);
+        btnFilter.addActionListener(e -> executeFilter());
 
-        JLabel lblMax = new JLabel("đến:");
-        gbc.gridx = 2; gbc.gridy = 0; gbc.weightx = 0;
-        add(lblMax, gbc);
+        JButton btnReset = new JButton("Reset");
+        btnReset.setBackground(new Color(149, 165, 166));
+        btnReset.setForeground(Color.WHITE);
+        btnReset.setFocusPainted(false);
+        btnReset.addActionListener(e -> resetFilters());
 
-        txtMaxPrice = new JTextField(8);
-        gbc.gridx = 3; gbc.gridy = 0; gbc.weightx = 0.2;
-        add(txtMaxPrice, gbc);
+        filterPanel.add(new JLabel("Search:")); filterPanel.add(txtSearch);
+        filterPanel.add(new JLabel("| Location:")); filterPanel.add(cbFilterLocation);
+        filterPanel.add(new JLabel("| Price:")); filterPanel.add(txtPriceFrom);
+        filterPanel.add(new JLabel("-")); filterPanel.add(txtPriceTo);
+        filterPanel.add(new JLabel("| Type:")); filterPanel.add(cbCategory);
+        filterPanel.add(btnFilter);
+        filterPanel.add(btnReset);
 
-        JButton btnFilter = new JButton("Lọc");
-        gbc.gridx = 4; gbc.gridy = 0; gbc.weightx = 0;
-        add(btnFilter, gbc);
-
-        JButton btnReset = new JButton("Tất cả");
-        gbc.gridx = 5; gbc.gridy = 0; gbc.weightx = 0;
-        add(btnReset, gbc);
-
-        // --- HÀNG 1: SEARCH + FILTER CATEGORY (FR-1.4, FR-5.2, FR-5.3) ---
-        JLabel lblSearch = new JLabel("Tìm kiếm:");
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(lblSearch, gbc);
-
-        txtSearch = new JTextField(18);
-        gbc.gridx = 1; gbc.gridy = 1; gbc.gridwidth = 2; gbc.weightx = 0.4;
-        add(txtSearch, gbc);
-
-        JButton btnSearch = new JButton("Search");
-        gbc.gridx = 3; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
-        add(btnSearch, gbc);
-
-        JLabel lblCat = new JLabel("Category:");
-        gbc.gridx = 4; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
-        add(lblCat, gbc);
-
-        cboCategory = new JComboBox<>(new String[]{"All", "Luxury", "Standard", "Budget"});
-        gbc.gridx = 5; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0.2;
-        add(cboCategory, gbc);
-
-        // --- HÀNG 2: CÁC NÚT CRUD & THAO TÁC ---
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        JButton btnAdd = new JButton("Thêm mới");
-        JButton btnEdit = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnFavorite = new JButton("Yêu thích/Bỏ yêu thích");
-        JButton btnNote = new JButton("Ghi chú");
-        JButton btnManageNotes = new JButton("Sửa/Xóa ghi chú");
-        JButton btnDetail = new JButton("Chi tiết");
-
-        // Định dạng nút Xóa
-        btnDelete.setForeground(Color.RED);
-
-        // PHÂN QUYỀN (FR-0.4): Chỉ ADMIN mới thấy và dùng được nút Xóa
-        if (currentUser.getRole() != Role.ADMIN) {
-            btnDelete.setEnabled(false);
-            btnDelete.setVisible(false); // Ẩn hoàn toàn nút xóa đối với Agent
-        }
-
-        actionPanel.add(btnAdd);
-        actionPanel.add(btnEdit);
-        actionPanel.add(btnDelete);
-        actionPanel.add(btnFavorite);
-        actionPanel.add(btnNote);
-        actionPanel.add(btnManageNotes);
-        actionPanel.add(btnDetail);
-
-        gbc.gridx = 0; gbc.gridy = 2;
-        gbc.gridwidth = 6;
-        gbc.weightx = 1.0;
-        add(actionPanel, gbc);
-
-        // --- HÀNG 3: BẢNG DỮ LIỆU ---
-        table = new ApartmentTable();
+        // ========================================================
+        // 2. BẢNG DỮ LIỆU
+        // ========================================================
+        String[] columns = {"ID", "Code", "Address", "Location", "Price", "Area"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        table.setRowHeight(30);
         JScrollPane scrollPane = new JScrollPane(table);
 
-        gbc.gridx = 0; gbc.gridy = 3;
-        gbc.gridwidth = 6;
-        gbc.weightx = 1.0;
-        gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
-        add(scrollPane, gbc);
+        // ========================================================
+        // 3. THANH NÚT BẤM (NÚT DELETE CÁCH LY)
+        // ========================================================
+        JPanel actionPanel = new JPanel();
+        actionPanel.setLayout(new BoxLayout(actionPanel, BoxLayout.X_AXIS));
+        actionPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        actionPanel.setOpaque(false);
 
-        // --- SỰ KIỆN NÚT BẤM ---
-        btnFilter.addActionListener(e -> handleFilter());
-        btnReset.addActionListener(e -> loadAllData());
+        JButton btnAdd = createBtn("Add New", new Color(46, 204, 113));
+        JButton btnEdit = createBtn("Edit", new Color(241, 196, 15));
+        JButton btnDetail = createBtn("Detail", new Color(52, 152, 219));
+        JButton btnFav = createBtn("Favorite", new Color(155, 89, 182));
+        JButton btnDelete = createBtn("Delete", new Color(231, 76, 60));
+
+        actionPanel.add(btnAdd); actionPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        actionPanel.add(btnEdit); actionPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        actionPanel.add(btnDetail); actionPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        actionPanel.add(btnFav);
+        
+        // Đẩy Delete văng sang bên phải
+        actionPanel.add(Box.createHorizontalGlue()); 
+        actionPanel.add(btnDelete);
+
         btnAdd.addActionListener(e -> handleAdd());
         btnEdit.addActionListener(e -> handleEdit());
         btnDelete.addActionListener(e -> handleDelete());
-        btnFavorite.addActionListener(e -> handleToggleFavorite());
-        btnNote.addActionListener(e -> handleAddNote());
-        btnManageNotes.addActionListener(e -> handleManageNotes());
         btnDetail.addActionListener(e -> handleShowDetail());
-        btnSearch.addActionListener(e -> applySearchAndCategory());
-        cboCategory.addActionListener(e -> applySearchAndCategory());
+        btnFav.addActionListener(e -> handleFavorite());
 
-        // Tải dữ liệu ban đầu
-        loadAllData();
+        JPanel centerWrapper = new JPanel(new BorderLayout());
+        centerWrapper.setOpaque(false);
+        centerWrapper.add(scrollPane, BorderLayout.CENTER);
+        centerWrapper.add(actionPanel, BorderLayout.SOUTH);
+
+        add(filterPanel, BorderLayout.NORTH);
+        add(centerWrapper, BorderLayout.CENTER);
     }
 
-    private void handleFilter() {
-        double min = 0;
-        double max = Double.MAX_VALUE;
+    private JButton createBtn(String text, Color color) {
+        JButton btn = new JButton(text);
+        btn.setBackground(color); btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false); btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        return btn;
+    }
 
-        try {
-            String minText = txtMinPrice.getText().trim();
-            if (!minText.isEmpty()) min = Double.parseDouble(minText);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Giá tối thiểu không hợp lệ");
-            return;
-        }
+    // ========================================================
+    // LOGIC LỌC DỮ LIỆU ĐỈNH CAO CHẤP MỌI LOẠI TIẾNG VIỆT
+    // ========================================================
+    private void resetFilters() {
+        txtSearch.setText("");
+        cbFilterLocation.setSelectedIndex(0);
+        txtPriceFrom.setText("");
+        txtPriceTo.setText("");
+        cbCategory.setSelectedIndex(0);
+        loadData();
+    }
 
-        try {
-            String maxText = txtMaxPrice.getText().trim();
-            if (!maxText.isEmpty()) max = Double.parseDouble(maxText);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Giá tối đa không hợp lệ");
-            return;
-        }
+    private String normalizeString(String s) {
+        if (s == null) return "";
+        String temp = Normalizer.normalize(s, Normalizer.Form.NFD);
+        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        String result = pattern.matcher(temp).replaceAll("").toLowerCase().trim();
+        
+        // Gọt sạch sẽ tiền tố lằng nhằng
+        result = result.replace("thanh pho ", "")
+                       .replace("thanh pho", "")
+                       .replace("tp. ", "")
+                       .replace("tp.", "")
+                       .replace("tp ", ""); 
+                       
+        // Phiên dịch từ viết tắt
+        result = result.replace("hcm", "ho chi minh")
+                       .replace("hn", "ha noi")
+                       .replace("dn", "da nang");
+                       
+        return result.replaceAll("\\s+", " ").trim();
+    }
 
+    private void executeFilter() {
+        String keyword = normalizeString(txtSearch.getText());
+        String location = cbFilterLocation.getSelectedItem().toString();
+        String type = cbCategory.getSelectedItem().toString();
+        
+        Double minPrice = null, maxPrice = null;
         try {
-            table.setApartments(apartmentService.filterByPrice(min, max));
+            if (!txtPriceFrom.getText().trim().isEmpty()) minPrice = Double.parseDouble(txtPriceFrom.getText().trim());
+            if (!txtPriceTo.getText().trim().isEmpty()) maxPrice = Double.parseDouble(txtPriceTo.getText().trim());
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi lọc dữ liệu: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Price must be a valid number!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        List<Apartment> allApts = service.findAll();
+        List<Apartment> filteredList = new ArrayList<>();
+
+        for (Apartment a : allApts) {
+            // Lọc Keyword: Quét trên cả Code, Address và Location
+            boolean matchKeyword = true;
+            if (!keyword.isEmpty()) {
+                String dbCode = normalizeString(a.getListingCode());
+                String dbAddr = normalizeString(a.getAddress());
+                String dbLoc = normalizeString(a.getLocation()); 
+                // Chỉ cần 1 trong 3 cái chứa keyword là lụm
+                matchKeyword = dbCode.contains(keyword) || dbAddr.contains(keyword) || dbLoc.contains(keyword);
+            }
+            
+            // Lọc Location theo ComboBox
+            boolean matchLocation = true;
+            if (!location.equals("All Locations")) {
+                String dbLoc = normalizeString(a.getLocation());
+                String filterLoc = normalizeString(location);
+                matchLocation = dbLoc.contains(filterLoc);
+            }
+                
+            boolean matchType = true;
+            if (!type.equals("All Types")) {
+                String dbType = a.getType() != null ? a.getType().name() : "";
+                matchType = dbType.equalsIgnoreCase(type);
+            }
+                
+            boolean matchPrice = true;
+            if (minPrice != null && a.getPrice() < minPrice) matchPrice = false;
+            if (maxPrice != null && a.getPrice() > maxPrice) matchPrice = false;
+
+            if (matchKeyword && matchLocation && matchType && matchPrice) {
+                filteredList.add(a);
+            }
+        }
+        populateTable(filteredList);
+    }
+
+    private void populateTable(List<Apartment> list) {
+        tableModel.setRowCount(0);
+        if (list != null) {
+            for (Apartment a : list) {
+                tableModel.addRow(new Object[]{ a.getId(), a.getListingCode(), a.getAddress(), a.getLocation(), "$" + a.getPrice(), a.getArea() + " m²" });
+            }
         }
     }
 
+    private void loadData() {
+        populateTable(service.findAll()); 
+    }
+
+    // ========================================================
+    // FORM ADD / EDIT (CÓ DROPDOWN LOCATION & CHECKBOX)
+    // ========================================================
     private void handleAdd() {
-        ApartmentFormResult form = showApartmentForm(null);
-        if (form == null) return;
-
-        try {
-            apartmentService.createApartmentWithAmenities(form.apartment, form.amenities, currentUser.getId());
-            loadAllData();
-            JOptionPane.showMessageDialog(this, "Thêm căn hộ thành công!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi thêm căn hộ: " + ex.getMessage());
+        Apartment newApt = showApartmentForm("Add New Apartment", null);
+        if (newApt != null) {
+            try { service.save(newApt); loadData(); JOptionPane.showMessageDialog(this, "Added!"); } 
+            catch (Exception ex) { JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage()); }
         }
     }
 
     private void handleEdit() {
-        int id = table.getSelectedApartmentId();
-        if (id == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn căn hộ cần sửa!");
-            return;
-        }
-
-        try {
-            Apartment current = apartmentService.getApartmentById(id);
-            ApartmentFormResult form = showApartmentForm(current);
-            if (form == null) return;
-
-            apartmentService.updateApartmentWithAmenities(form.apartment, form.amenities, currentUser.getId());
-            loadAllData();
-            JOptionPane.showMessageDialog(this, "Cập nhật căn hộ thành công!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật căn hộ: " + ex.getMessage());
+        int row = table.getSelectedRow();
+        if (row == -1) { JOptionPane.showMessageDialog(this, "Select an apartment!"); return; }
+        Apartment existingApt = service.getById((int) table.getValueAt(row, 0));
+        
+        if (existingApt != null) {
+            Apartment updatedApt = showApartmentForm("Edit Apartment", existingApt);
+            if (updatedApt != null) {
+                try { service.update(updatedApt); loadData(); JOptionPane.showMessageDialog(this, "Updated!"); } 
+                catch (Exception ex) { JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage()); }
+            }
         }
     }
 
     private void handleDelete() {
-        int id = table.getSelectedApartmentId();
-        if (id == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn căn hộ cần xóa!");
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(
-                this, "Xóa căn hộ này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        try {
-            apartmentService.deleteApartment(id, currentUser.getId());
-            loadAllData();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi xóa: " + ex.getMessage());
+        int row = table.getSelectedRow();
+        if (row == -1) { JOptionPane.showMessageDialog(this, "Select an apartment to delete!"); return; }
+        if (JOptionPane.showConfirmDialog(this, "Delete this apartment?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            try { service.delete((int) table.getValueAt(row, 0)); loadData(); JOptionPane.showMessageDialog(this, "Deleted!"); } 
+            catch (Exception ex) { JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage()); }
         }
     }
 
-    private void handleToggleFavorite() {
-        int id = table.getSelectedApartmentId();
-        if (id == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn căn hộ để thêm/bỏ yêu thích!");
-            return;
+    private Apartment showApartmentForm(String title, Apartment apt) {
+        JTextField txtCode = new JTextField(apt != null ? apt.getListingCode() : "");
+        JTextField txtAddress = new JTextField(apt != null ? apt.getAddress() : "");
+        JTextField txtPrice = new JTextField(apt != null ? String.valueOf(apt.getPrice()) : "");
+        JTextField txtBedrooms = new JTextField(apt != null ? String.valueOf(apt.getBedrooms()) : "");
+        JTextField txtArea = new JTextField(apt != null ? String.valueOf(apt.getArea()) : "");
+        
+        JComboBox<String> cbLocation = new JComboBox<>(PROVINCES_FORM);
+        if (apt != null && apt.getLocation() != null) { cbLocation.setSelectedItem(apt.getLocation()); }
+
+        JComboBox<String> cbType = new JComboBox<>(new String[]{"LUXURY", "STANDARD", "BUDGET"});
+        if (apt != null && apt.getType() != null) { cbType.setSelectedItem(apt.getType().name()); }
+
+        JPanel pnlInfo = new JPanel(new GridLayout(0, 2, 10, 10));
+        pnlInfo.add(new JLabel("Listing Code:")); pnlInfo.add(txtCode);
+        pnlInfo.add(new JLabel("Address:")); pnlInfo.add(txtAddress);
+        pnlInfo.add(new JLabel("Location (City):")); pnlInfo.add(cbLocation);
+        pnlInfo.add(new JLabel("Price ($):")); pnlInfo.add(txtPrice);
+        pnlInfo.add(new JLabel("Bedrooms:")); pnlInfo.add(txtBedrooms);
+        pnlInfo.add(new JLabel("Area (m²):")); pnlInfo.add(txtArea); 
+        pnlInfo.add(new JLabel("Category:")); pnlInfo.add(cbType);
+
+        JPanel pnlAmenities = new JPanel(new GridLayout(0, 3, 5, 5));
+        pnlAmenities.setBorder(BorderFactory.createTitledBorder(new EmptyBorder(10,0,0,0), "Select Amenities", TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 12)));
+        for (String am : AMENITIES) { pnlAmenities.add(new JCheckBox(am)); }
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(pnlInfo, BorderLayout.CENTER);
+        mainPanel.add(pnlAmenities, BorderLayout.SOUTH);
+
+        if (JOptionPane.showConfirmDialog(this, mainPanel, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+            try {
+                return new Apartment(apt != null ? apt.getId() : 0, txtCode.getText(), txtAddress.getText(),
+                    cbLocation.getSelectedItem().toString(), Double.parseDouble(txtPrice.getText()), 
+                    Integer.parseInt(txtBedrooms.getText()), Integer.parseInt(txtArea.getText()), 
+                    ApartmentType.valueOf(cbType.getSelectedItem().toString()), apt != null ? apt.getCreatedBy() : currentUser.getId()
+                );
+            } catch (Exception e) { JOptionPane.showMessageDialog(this, "Invalid number format!"); }
         }
-
-        try {
-            apartmentService.toggleFavorite(currentUser.getId(), id);
-            JOptionPane.showMessageDialog(this, "Đã cập nhật trạng thái yêu thích.");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật yêu thích: " + ex.getMessage());
-        }
-    }
-
-    /**
-     * Thêm ghi chú nội bộ cho căn hộ (FR-3.2, FR-3.4).
-     */
-    private void handleAddNote() {
-        int apartmentId = table.getSelectedApartmentId();
-        if (apartmentId == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn căn hộ để ghi chú!");
-            return;
-        }
-
-        // Load các note cũ (nếu có) để agent dễ theo dõi lịch sử
-        List<Note> existingNotes = noteRepository.findByApartmentId(apartmentId);
-        StringBuilder existing = new StringBuilder();
-        if (!existingNotes.isEmpty()) {
-            existing.append("Các ghi chú hiện có:\n");
-            for (Note n : existingNotes) {
-                existing.append("- [User ")
-                        .append(n.getUserId())
-                        .append("] ")
-                        .append(n.getNoteText())
-                        .append("\n");
-            }
-            existing.append("\n----- Nhập ghi chú mới bên dưới -----\n");
-        }
-
-        JTextArea txtArea = new JTextArea(8, 30);
-        txtArea.setWrapStyleWord(true);
-        txtArea.setLineWrap(true);
-        if (existing.length() > 0) {
-            txtArea.setText(existing.toString());
-            txtArea.setCaretPosition(txtArea.getText().length());
-        }
-
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                new JScrollPane(txtArea),
-                "Ghi chú cho căn hộ ID = " + apartmentId,
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
-            return;
-        }
-
-        String content = txtArea.getText().trim();
-        if (content.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Nội dung ghi chú không được để trống!");
-            return;
-        }
-
-        try {
-            Note note = new Note(0, apartmentId, currentUser.getId(), content);
-            noteRepository.save(note);
-            JOptionPane.showMessageDialog(this, "Đã lưu ghi chú.");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi lưu ghi chú: " + ex.getMessage());
-        }
-    }
-
-    private void loadAllData() {
-        try {
-            applySearchAndCategory();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi tải dữ liệu: " + ex.getMessage());
-        }
-    }
-
-    private void applySearchAndCategory() {
-        String keyword = txtSearch.getText().trim();
-        String cat = (String) cboCategory.getSelectedItem();
-        if (cat == null) cat = "All";
-
-        List<Apartment> base = keyword.isEmpty()
-                ? apartmentService.getAllApartments()
-                : apartmentService.searchApartments(keyword);
-
-        if (!"All".equalsIgnoreCase(cat)) {
-            List<Apartment> filtered = new ArrayList<>();
-            for (Apartment a : base) {
-                if (cat.equalsIgnoreCase(a.getCategory())) filtered.add(a);
-            }
-            base = filtered;
-        }
-
-        table.setApartments(base);
-    }
-
-    private static class ApartmentFormResult {
-        final Apartment apartment;
-        final List<String> amenities;
-        ApartmentFormResult(Apartment apartment, List<String> amenities) {
-            this.apartment = apartment;
-            this.amenities = amenities;
-        }
-    }
-
-    private ApartmentFormResult showApartmentForm(Apartment existing) {
-        JTextField txtCode = new JTextField(existing != null ? existing.getListingCode() : "");
-        JTextField txtAddress = new JTextField(existing != null ? existing.getAddress() : "");
-        JTextField txtLocation = new JTextField(existing != null ? existing.getLocation() : "");
-        JTextField txtPrice = new JTextField(existing != null ? String.valueOf(existing.getPrice()) : "");
-        JTextField txtBedrooms = new JTextField(existing != null ? String.valueOf(existing.getBedrooms()) : "");
-        JTextField txtArea = new JTextField(existing != null ? String.valueOf(existing.getArea()) : "");
-        JComboBox<ApartmentType> cboType = new JComboBox<>(ApartmentType.values());
-        if (existing != null) cboType.setSelectedItem(existing.getType());
-
-        // Amenities selector (FR-1.2)
-        List<String> allAmenities = apartmentService.getAllAmenityNames();
-        JList<String> listAmenities = new JList<>(allAmenities.toArray(new String[0]));
-        listAmenities.setVisibleRowCount(6);
-        listAmenities.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        if (existing != null) {
-            List<String> selected = apartmentService.getAmenitiesForApartment(existing.getId());
-            int[] indices = selected.stream()
-                    .mapToInt(allAmenities::indexOf)
-                    .filter(i -> i >= 0)
-                    .toArray();
-            listAmenities.setSelectedIndices(indices);
-        }
-
-        JPanel form = new JPanel(new GridLayout(0, 2, 5, 5));
-        form.add(new JLabel("Mã:")); form.add(txtCode);
-        form.add(new JLabel("Địa chỉ:")); form.add(txtAddress);
-        form.add(new JLabel("Vị trí:")); form.add(txtLocation);
-        form.add(new JLabel("Giá:")); form.add(txtPrice);
-        form.add(new JLabel("Số phòng ngủ:")); form.add(txtBedrooms);
-        form.add(new JLabel("Diện tích:")); form.add(txtArea);
-        form.add(new JLabel("Loại căn hộ:")); form.add(cboType);
-        form.add(new JLabel("Amenities:")); form.add(new JScrollPane(listAmenities));
-
-        String title = (existing == null) ? "Thêm căn hộ mới" : "Sửa căn hộ";
-        int result = JOptionPane.showConfirmDialog(
-                this, form, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (result != JOptionPane.OK_OPTION) return null;
-
-        try {
-            double price = Double.parseDouble(txtPrice.getText().trim());
-            int bedrooms = Integer.parseInt(txtBedrooms.getText().trim());
-            int area = Integer.parseInt(txtArea.getText().trim());
-            ApartmentType type = (ApartmentType) cboType.getSelectedItem();
-
-            int id = (existing != null) ? existing.getId() : 0;
-            int createdBy = (existing != null) ? existing.getCreatedBy() : currentUser.getId();
-
-            Apartment apt = new Apartment(
-                    id,
-                    txtCode.getText().trim(),
-                    txtAddress.getText().trim(),
-                    txtLocation.getText().trim(),
-                    price,
-                    bedrooms,
-                    area,
-                    type,
-                    createdBy
-            );
-            List<String> amenities = listAmenities.getSelectedValuesList();
-            return new ApartmentFormResult(apt, amenities);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Giá, số phòng ngủ và diện tích phải là số.");
-            return null;
-        }
-    }
-
-    private void handleManageNotes() {
-        int apartmentId = table.getSelectedApartmentId();
-        if (apartmentId == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn căn hộ để quản lý ghi chú!");
-            return;
-        }
-
-        NotesDialog dialog = new NotesDialog(
-                SwingUtilities.getWindowAncestor(this),
-                noteRepository,
-                apartmentId,
-                currentUser.getId()
-        );
-        dialog.setVisible(true);
+        return null; 
     }
 
     private void handleShowDetail() {
-        int apartmentId = table.getSelectedApartmentId();
-        if (apartmentId == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn căn hộ để xem chi tiết!");
-            return;
-        }
+        int row = table.getSelectedRow();
+        if (row != -1) { new ApartmentDetailDialog(null, service.getById((int) table.getValueAt(row, 0))).setVisible(true); }
+    }
 
-        try {
-            Apartment apt = apartmentService.getApartmentById(apartmentId);
-            List<String> amenities = apartmentService.getAmenitiesForApartment(apartmentId);
-            ApartmentDetailDialog dialog = new ApartmentDetailDialog(
-                    SwingUtilities.getWindowAncestor(this),
-                    apt,
-                    amenities
-            );
-            dialog.setVisible(true);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải chi tiết: " + ex.getMessage());
-        }
+    private void handleFavorite() {
+        int row = table.getSelectedRow();
+        if (row != -1) { service.toggleFavorite(currentUser.getId(), (int) table.getValueAt(row, 0)); JOptionPane.showMessageDialog(this, "Favorite Toggled!"); }
     }
 }

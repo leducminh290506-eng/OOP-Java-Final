@@ -3,7 +3,11 @@ package com.oop.project.ui.panels;
 import com.oop.project.util.DatabaseConnection;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,40 +25,159 @@ public class SystemLogPanel extends JPanel {
     private JTable auditTable;
 
     public SystemLogPanel() {
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(15, 15));
+        setBackground(new Color(245, 247, 250)); // Nền xám nhạt đồng bộ
+        setBorder(new EmptyBorder(20, 20, 20, 20)); // Padding tổng
+
         initComponents();
         loadLoginLogs();
         loadAuditLogs();
     }
 
     private void initComponents() {
+        // --- 1. HEADER TIEU ĐỀ ---
+        JLabel lblHeader = new JLabel("System Logs");
+        lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblHeader.setForeground(new Color(44, 62, 80));
+        lblHeader.setBorder(new EmptyBorder(0, 0, 15, 0));
+        add(lblHeader, BorderLayout.NORTH);
+
+        // --- 2. KHỞI TẠO TABS ---
         JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        tabs.setBackground(Color.WHITE);
+        tabs.setFocusable(false);
 
-        // Bảng login_logs
-        loginTable = new JTable(new DefaultTableModel(
-                new Object[]{"ID", "Username", "Hành động", "Thời gian"}, 0
-        ));
-        JPanel loginPanel = new JPanel(new BorderLayout());
-        loginPanel.add(new JScrollPane(loginTable), BorderLayout.CENTER);
-        JButton btnRefreshLogin = new JButton("Refresh login logs");
+        // ==========================================
+        // TAB 1: NHẬT KÝ ĐĂNG NHẬP (LOGIN LOGS)
+        // ==========================================
+        loginTable = createStyledTable(new String[]{"ID", "Username", "Activity", "Timestamp"});
+        
+        // Căn chỉnh độ rộng cột cho Login Table
+        loginTable.getColumnModel().getColumn(0).setMaxWidth(80);
+        loginTable.getColumnModel().getColumn(1).setPreferredWidth(150);
+        loginTable.getColumnModel().getColumn(2).setPreferredWidth(150);
+        loginTable.getColumnModel().getColumn(3).setPreferredWidth(200);
+
+        JPanel loginPanel = new JPanel(new BorderLayout(0, 10));
+        loginPanel.setBackground(Color.WHITE);
+        loginPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        
+        JScrollPane loginScroll = new JScrollPane(loginTable);
+        loginScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        loginPanel.add(loginScroll, BorderLayout.CENTER);
+
+        JButton btnRefreshLogin = createStyledButton("Refresh", new Color(52, 152, 219));
         btnRefreshLogin.addActionListener(e -> loadLoginLogs());
-        loginPanel.add(btnRefreshLogin, BorderLayout.SOUTH);
+        
+        JPanel loginBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        loginBottom.setOpaque(false);
+        loginBottom.add(btnRefreshLogin);
+        loginPanel.add(loginBottom, BorderLayout.SOUTH);
 
-        // Bảng audit_logs
-        auditTable = new JTable(new DefaultTableModel(
-                new Object[]{"ID", "Username", "Mã căn hộ", "Hành động", "Thời gian", "Chi tiết"}, 0
-        ));
-        JPanel auditPanel = new JPanel(new BorderLayout());
-        auditPanel.add(new JScrollPane(auditTable), BorderLayout.CENTER);
-        JButton btnRefreshAudit = new JButton("Refresh audit logs");
+        // ==========================================
+        // TAB 2: NHẬT KÝ THAO TÁC (AUDIT LOGS)
+        // ==========================================
+        auditTable = createStyledTable(new String[]{"ID", "Username", "Apartment ID", "Activity", "Timestamp", "Details"});
+        
+        // Căn chỉnh độ rộng cột cho Audit Table
+        auditTable.getColumnModel().getColumn(0).setMaxWidth(60);
+        auditTable.getColumnModel().getColumn(1).setPreferredWidth(120);
+        auditTable.getColumnModel().getColumn(2).setPreferredWidth(100);
+        auditTable.getColumnModel().getColumn(3).setPreferredWidth(120);
+        auditTable.getColumnModel().getColumn(4).setPreferredWidth(180);
+        auditTable.getColumnModel().getColumn(5).setPreferredWidth(300); // Chi tiết cần rộng nhất
+
+        JPanel auditPanel = new JPanel(new BorderLayout(0, 10));
+        auditPanel.setBackground(Color.WHITE);
+        auditPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        
+        JScrollPane auditScroll = new JScrollPane(auditTable);
+        auditScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        auditPanel.add(auditScroll, BorderLayout.CENTER);
+
+        JButton btnRefreshAudit = createStyledButton("Refresh", new Color(39, 174, 96));
         btnRefreshAudit.addActionListener(e -> loadAuditLogs());
-        auditPanel.add(btnRefreshAudit, BorderLayout.SOUTH);
+        
+        JPanel auditBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        auditBottom.setOpaque(false);
+        auditBottom.add(btnRefreshAudit);
+        auditPanel.add(auditBottom, BorderLayout.SOUTH);
 
-        tabs.addTab("Nhật ký đăng nhập", loginPanel);
-        tabs.addTab("Nhật ký thao tác căn hộ", auditPanel);
+        // Thêm vào Tabs
+        tabs.addTab("Login Logs", loginPanel);
+        tabs.addTab("Audit Logs", auditPanel);
 
         add(tabs, BorderLayout.CENTER);
     }
+
+    // --- HÀM UI: TẠO BẢNG ĐẸP ---
+    private JTable createStyledTable(String[] columns) {
+        JTable table = new JTable(new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Khóa bảng không cho sửa trực tiếp
+            }
+        }) {
+            @Override
+            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+                Component c = super.prepareRenderer(renderer, row, column);
+                if (!isRowSelected(row)) {
+                    // Màu dòng xen kẽ (Zebra Stripes)
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
+                    c.setForeground(new Color(44, 62, 80));
+                }
+                return c;
+            }
+        };
+
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.setRowHeight(35);
+        table.setShowGrid(false);
+        table.setShowHorizontalLines(true);
+        table.setGridColor(new Color(230, 230, 230));
+        table.setSelectionBackground(new Color(41, 128, 185));
+        table.setSelectionForeground(Color.WHITE);
+
+        JTableHeader header = table.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        header.setBackground(new Color(236, 240, 241));
+        header.setForeground(new Color(44, 62, 80));
+        header.setPreferredSize(new Dimension(100, 40));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 200)));
+
+        // Căn giữa cột ID
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+
+        return table;
+    }
+
+    // --- HÀM UI: TẠO NÚT BẤM ---
+    private JButton createStyledButton(String text, Color bgColor) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setBackground(bgColor);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setOpaque(true);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(220, 40));
+        
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor.darker());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor);
+            }
+        });
+        return btn;
+    }
+
+    // --- LOGIC TRUY XUẤT DB (Giữ nguyên của bạn) ---
 
     private void loadLoginLogs() {
         String sql = "SELECT l.log_id, u.username, l.action, l.timestamp " +
@@ -76,7 +199,7 @@ public class SystemLogPanel extends JPanel {
                 });
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi tải login logs: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Login logs faulty: " + e.getMessage(), "Database faulty", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -104,8 +227,7 @@ public class SystemLogPanel extends JPanel {
                 });
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi tải audit logs: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Audit logs faulty: " + e.getMessage(), "Database faulty", JOptionPane.ERROR_MESSAGE);
         }
     }
 }
-
