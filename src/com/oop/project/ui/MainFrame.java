@@ -11,6 +11,7 @@ import com.oop.project.ui.panels.DashboardPanel;
 import com.oop.project.ui.panels.FavoritePanel;
 import com.oop.project.ui.panels.ListingPanel;
 import com.oop.project.ui.panels.SystemLogPanel;
+import com.oop.project.ui.panels.ContractPanel; 
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,8 +23,14 @@ public class MainFrame extends JFrame {
     private ApartmentService apartmentService;
     private final AuthService authService;
     private boolean isLoggingOut = false;
+    
+    // Biến để lưu nút đang được chọn (Active State)
+    private JButton selectedButton;
 
-// Components for Sidebar Navigation
+    // Đưa FavoritePanel lên đây để toàn bộ Class có thể nhìn thấy
+    private FavoritePanel favoritePanel;
+
+    // Components for Sidebar Navigation
     private JPanel cardPanel;
     private CardLayout cardLayout;
 
@@ -34,7 +41,7 @@ public class MainFrame extends JFrame {
         ApartmentRepository repo = new ApartmentRepository();
         this.apartmentService = new ApartmentService(repo);
 
-        setTitle("Real Estate System - " + user.getUsername() + " (" + user.getRole() + ")");
+        setTitle("Real Estate Management System - " + user.getUsername() + " (" + user.getRole() + ")");
         setSize(1100, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -52,7 +59,6 @@ public class MainFrame extends JFrame {
     }
 
     private void initComponents() {
-        // Đặt layout chính của Frame
         setLayout(new BorderLayout());
 
         // 1. TẠO VÙNG CHỨA NỘI DUNG CHÍNH (CardPanel)
@@ -60,17 +66,23 @@ public class MainFrame extends JFrame {
         cardPanel = new JPanel(cardLayout);
 
         ListingPanel listingPanel   = new ListingPanel(apartmentService, currentUser);
-        FilterPanel filterPanel     = new FilterPanel(apartmentService);
-        FavoritePanel favoritePanel = new FavoritePanel(apartmentService, currentUser);
-        DashboardPanel dashboard    = new DashboardPanel();
+        FilterPanel filterPanel = new FilterPanel(apartmentService);        
+        ContractPanel contractPanel = new ContractPanel(currentUser); 
+        DashboardPanel dashboard    = new DashboardPanel(); 
+        
+        // SỬA LỖI 1 & 2: Dùng biến toàn cục (không có chữ FavoritePanel ở đầu)
+        this.favoritePanel = new FavoritePanel(apartmentService, currentUser);        
 
-        // Thêm các panel vào cardPanel kèm "Tên định danh" (String)
         cardPanel.add(listingPanel, "Listings");
         cardPanel.add(filterPanel, "Filters");
-        cardPanel.add(favoritePanel, "Favorites");
+        
+        // SỬA LỖI 3: Dòng này lúc nãy ông bị thiếu, nên nó đéo show ra được!
+        cardPanel.add(this.favoritePanel, "Favorites"); 
+        
+        cardPanel.add(contractPanel, "Contracts");
         cardPanel.add(dashboard, "Dashboard");
 
-        if (currentUser.getRole() == Role.ADMIN) { // FR-0.4
+        if (currentUser.getRole() == Role.ADMIN) { 
             cardPanel.add(new SystemLogPanel(), "SystemLogs");
         }
 
@@ -82,69 +94,116 @@ public class MainFrame extends JFrame {
         add(cardPanel, BorderLayout.CENTER);
     }
 
-    // --- HÀM TẠO THANH ĐIỀU HƯỚNG BÊN TRÁI ---
+    // ========================================================
+    // 1. HÀM TẠO THANH SIDEBAR (TEXT ONLY)
+    // ========================================================
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setPreferredSize(new Dimension(220, getHeight()));
-        // Màu nền tối (Dark Gray/Blue) tạo cảm giác hiện đại
-        sidebar.setBackground(new Color(44, 62, 80)); 
+        sidebar.setBackground(new Color(44, 62, 80));
+        sidebar.setPreferredSize(new Dimension(220, 0));
 
-        // Logo / Tiêu đề
-        JLabel lblLogo = new JLabel("REAL ESTATE");
-        lblLogo.setForeground(Color.WHITE);
-        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblLogo.setAlignmentX(Component.CENTER_ALIGNMENT);
-        lblLogo.setBorder(BorderFactory.createEmptyBorder(30, 0, 40, 0));
-        sidebar.add(lblLogo);
+        // Logo tiêu đề
+        JLabel titleLabel = new JLabel("  Real Estate Management System");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
+        sidebar.add(titleLabel);
 
-// Menu buttons
-        sidebar.add(createNavButton("Listings", "Listings"));
+        // create navigation buttons
+        JButton btnListings = createNavButton("Listings", "Listings");
+        sidebar.add(btnListings);
         sidebar.add(createNavButton("Filters", "Filters"));
         sidebar.add(createNavButton("Favorites", "Favorites"));
+        sidebar.add(createNavButton("Contracts", "Contracts"));
         sidebar.add(createNavButton("Dashboard", "Dashboard"));
 
+        // Đẩy các phần sau xuống dưới
+        sidebar.add(Box.createVerticalGlue());
+
         if (currentUser.getRole() == Role.ADMIN) {
-            sidebar.add(Box.createVerticalGlue()); // Push Log button to bottom if desired
             sidebar.add(createNavButton("System Logs", "SystemLogs"));
         }
 
-        // Đệm phía dưới
-        sidebar.add(Box.createVerticalGlue()); 
+        // Mặc định cho nút đầu tiên sáng lên khi vừa mở App
+        updateButtonStyles(btnListings);
+
         return sidebar;
     }
 
-    // --- HÀM TẠO NÚT CHO SIDEBAR ---
+    // ========================================================
+    // 2. HÀM TẠO NÚT BẤM (TEXT ONLY + CLICK EFFECT)
+    // ========================================================
     private JButton createNavButton(String text, String cardName) {
         JButton btn = new JButton(text);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         
-        // Loại bỏ giao diện nút mặc định để trông "phẳng" hơn
+        // Style cơ bản
         btn.setFocusPainted(false);
         btn.setContentAreaFilled(false);
         btn.setOpaque(true);
-        btn.setBackground(new Color(44, 62, 80));
-        btn.setForeground(new Color(236, 240, 241));
-        btn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        
-        // Căn lề trái cho chữ
+        btn.setBackground(new Color(44, 62, 80)); // Màu nền Sidebar
+        btn.setForeground(new Color(236, 240, 241)); // Màu chữ trắng mờ
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 20));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
 
-        // Thêm hiệu ứng hover (đổi màu khi trỏ chuột)
+        // Hiệu ứng Hover
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btn.setBackground(new Color(52, 73, 94));
+                if (btn != selectedButton) {
+                    btn.setBackground(new Color(52, 73, 94));
+                }
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                btn.setBackground(new Color(44, 62, 80));
+                if (btn != selectedButton) {
+                    btn.setBackground(new Color(44, 62, 80));
+                }
             }
         });
 
-        // Xử lý sự kiện click: Chuyển màn hình tương ứng bằng CardLayout
-        btn.addActionListener(e -> cardLayout.show(cardPanel, cardName));
+        // Sự kiện Click
+        btn.addActionListener(e -> {
+            // SỬA LỖI 4: Nếu nút được bấm là "Favorites", thì bắt nó đi lấy dữ liệu mới!
+            if (cardName.equals("Favorites")) {
+                refreshFavorites();
+            }
+            
+            cardLayout.show(cardPanel, cardName);
+            updateButtonStyles(btn); // Làm sáng nút được chọn
+        });
 
         return btn;
+    }
+
+    // ========================================================
+    // 3. HÀM CẬP NHẬT TRẠNG THÁI NÚT ĐANG CHỌN (ACTIVE STATE)
+    // ========================================================
+    private void updateButtonStyles(JButton clickedButton) {
+        // Trả nút cũ về màu bình thường
+        if (selectedButton != null) {
+            selectedButton.setBackground(new Color(44, 62, 80));
+            selectedButton.setForeground(new Color(236, 240, 241));
+            selectedButton.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 20));
+        }
+
+        // Làm sáng nút mới
+        selectedButton = clickedButton;
+        selectedButton.setBackground(new Color(62, 85, 108)); // Màu xanh sáng
+        selectedButton.setForeground(Color.WHITE); // Chữ trắng rõ
+        
+        // Thêm viền xanh dương bên trái làm điểm nhấn cho nút đang chọn
+        selectedButton.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 5, 0, 0, new Color(52, 152, 219)), // Viền 5px bên trái
+            BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
+    }
+
+    public void refreshFavorites() {
+        if (favoritePanel != null) {
+            favoritePanel.loadFavorites();
+        }
     }
 }

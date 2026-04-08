@@ -13,7 +13,7 @@ import java.util.List;
 public class ApartmentDetailDialog extends JDialog {
 
     public ApartmentDetailDialog(Window owner, Apartment apartment, List<String> amenities) {
-        super(owner, "Chi tiết căn hộ - " + apartment.getListingCode(), ModalityType.APPLICATION_MODAL);
+        super(owner, "Apartment Detail - " + apartment.getListingCode(), ModalityType.APPLICATION_MODAL);
         setSize(480, 580);
         setLocationRelativeTo(owner);
         setResizable(false);
@@ -26,7 +26,7 @@ public class ApartmentDetailDialog extends JDialog {
         headerPanel.setBackground(new Color(41, 128, 185)); // Màu xanh dương chủ đạo
         headerPanel.setBorder(new EmptyBorder(25, 20, 25, 20));
 
-        JLabel lblTitle = new JLabel("CĂN HỘ " + apartment.getListingCode());
+        JLabel lblTitle = new JLabel("APARTMENT " + apartment.getListingCode());
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -48,9 +48,9 @@ public class ApartmentDetailDialog extends JDialog {
         bodyPanel.setBorder(new EmptyBorder(20, 30, 20, 30));
 
         // 2.1 Thông tin cơ bản
-        bodyPanel.add(createSectionTitle("Thông tin cơ bản"));
-        bodyPanel.add(createInfoRow("📍 Địa chỉ:", apartment.getAddress()));
-        bodyPanel.add(createInfoRow("🗺️ Vị trí:", apartment.getLocation()));
+        bodyPanel.add(createSectionTitle("Basic Information"));
+        bodyPanel.add(createInfoRow("Address:", apartment.getAddress()));
+        bodyPanel.add(createInfoRow("Location:", apartment.getLocation()));
         bodyPanel.add(Box.createRigidArea(new Dimension(0, 20))); // Khoảng cách
 
         // 2.2 Chi tiết giá (FR-4.2)
@@ -58,21 +58,21 @@ public class ApartmentDetailDialog extends JDialog {
         int area = apartment.getArea();
         double pricePerSqft = (area > 0) ? (price / area) : 0.0;
 
-        bodyPanel.add(createSectionTitle("Chi tiết giá & Không gian"));
-        bodyPanel.add(createInfoRow("💵 Giá thuê (Tháng):", String.format("$%,.2f", price)));
-        bodyPanel.add(createInfoRow("🛏️ Số phòng ngủ:", String.valueOf(apartment.getBedrooms())));
-        bodyPanel.add(createInfoRow("📏 Diện tích:", area + " sqft"));
-        bodyPanel.add(createInfoRow("🏷️ Giá / sqft:", String.format("$%,.2f", pricePerSqft)));
+        bodyPanel.add(createSectionTitle("Price & Space Details"));
+        bodyPanel.add(createInfoRow("Rent Price (Monthly):", String.format("$%,.2f", price)));
+        bodyPanel.add(createInfoRow("Bedrooms:", String.valueOf(apartment.getBedrooms())));
+        bodyPanel.add(createInfoRow("Area:", area + " sqft"));
+        bodyPanel.add(createInfoRow("Price / sqft:", String.format("$%,.2f", pricePerSqft)));
         bodyPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // 2.3 Tiện ích đi kèm (Amenities)
-        bodyPanel.add(createSectionTitle("Tiện ích đi kèm"));
+        bodyPanel.add(createSectionTitle("Amenities"));
         JPanel amenitiesPanel = new JPanel(new GridLayout(0, 2, 10, 10)); // Lưới 2 cột
         amenitiesPanel.setBackground(Color.WHITE);
         amenitiesPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         
         if (amenities == null || amenities.isEmpty()) {
-            amenitiesPanel.add(new JLabel("❌ Không có tiện ích"));
+            amenitiesPanel.add(new JLabel("No amenities available"));
         } else {
             for (String a : amenities) {
                 JLabel lblAmenity = new JLabel("✔️ " + a);

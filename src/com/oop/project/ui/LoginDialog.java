@@ -20,7 +20,7 @@ public class LoginDialog extends JFrame {
         this.authService = new AuthService(userRepository);
 
         setTitle("Login - Real Estate System");
-        setSize(400, 450); // Mở rộng size một chút cho thoáng
+        setSize(400, 450);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -123,7 +123,7 @@ public class LoginDialog extends JFrame {
             
         } catch (AuthException ex) {
             JOptionPane.showMessageDialog(this, 
-                "Sai tên đăng nhập hoặc mật khẩu. Vui lòng thử lại!", 
+                "Wrong username or password. Please try again!", 
                 "Login Error", 
                 JOptionPane.ERROR_MESSAGE);
         }

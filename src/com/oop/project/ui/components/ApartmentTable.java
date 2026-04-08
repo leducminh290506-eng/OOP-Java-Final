@@ -16,7 +16,7 @@ public class ApartmentTable extends JTable {
 
     public ApartmentTable() {
         // Cấu hình Model với các cột gốc của bạn
-        model = new DefaultTableModel(new String[]{"ID", "Mã", "Địa chỉ", "Giá thuê", "Diện tích"}, 0) {
+        model = new DefaultTableModel(new String[]{"ID", "Code", "Address", "Rent", "Area"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Khóa không cho người dùng click đúp để sửa trực tiếp trên bảng

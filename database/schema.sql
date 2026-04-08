@@ -4,7 +4,6 @@ CREATE DATABASE apartment_listing_system;
 
 USE apartment_listing_system;
 
-
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -22,6 +21,10 @@ CREATE TABLE apartments (
     bedrooms INT NOT NULL,
     size_sqft INT NOT NULL,
     category ENUM( 'STUDIO', 'ONE_BEDROOM', 'TWO_BEDROOM', 'PENTHOUSE', 'DUPLEX','STANDARD', 'LUXURY', 'BUDGET') NOT NULL,
+    
+    -- Cột mới thêm để quản lý tình trạng phòng
+    status ENUM('AVAILABLE', 'RENTED', 'MAINTENANCE') DEFAULT 'AVAILABLE',
+    
     created_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -121,6 +124,36 @@ CREATE TABLE audit_logs (
         FOREIGN KEY (apartment_id)
         REFERENCES apartments(apartment_id)
         ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng mới: Khách hàng
+CREATE TABLE customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng mới: Hợp đồng thuê nhà
+CREATE TABLE lease_contracts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    apartment_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    monthly_rent DOUBLE NOT NULL,
+    total_value DOUBLE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_contract_apartment
+        FOREIGN KEY (apartment_id)
+        REFERENCES apartments(apartment_id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_contract_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(id)
+        ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_apartment_price ON apartments(price);

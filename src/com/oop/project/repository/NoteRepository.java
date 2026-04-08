@@ -35,14 +35,16 @@ public class NoteRepository implements IRepository<Note, Integer> {
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, aptId);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                notes.add(new Note(
-                        rs.getInt("note_id"),
-                        rs.getInt("apartment_id"),
-                        rs.getInt("user_id"),
-                        rs.getString("note_text")
-                ));
+            // Sửa lỗi: Đưa ResultSet vào try-with-resources để tự động đóng
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    notes.add(new Note(
+                            rs.getInt("note_id"),
+                            rs.getInt("apartment_id"),
+                            rs.getInt("user_id"),
+                            rs.getString("note_text")
+                    ));
+                }
             }
         } catch (SQLException e) {
             throw new DatabaseException("Error finding notes", e);
@@ -62,6 +64,7 @@ public class NoteRepository implements IRepository<Note, Integer> {
             throw new DatabaseException("Error updating note", e);
         }
     }
+
     @Override
     public void delete(Integer id) {
         String sql = "DELETE FROM notes WHERE note_id = ?";
@@ -73,6 +76,7 @@ public class NoteRepository implements IRepository<Note, Integer> {
             throw new DatabaseException("Error deleting note", e);
         }
     }
+
     @Override
     public Optional<Note> findById(Integer id) {
         String sql = "SELECT * FROM notes WHERE note_id = ?";
@@ -97,7 +101,6 @@ public class NoteRepository implements IRepository<Note, Integer> {
     
     @Override
     public List<Note> findAll() { 
-        // return empty list
         return Collections.emptyList(); 
     }
 }

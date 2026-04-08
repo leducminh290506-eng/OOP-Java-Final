@@ -6,19 +6,37 @@ import javax.swing.UnsupportedLookAndFeelException;
 
 public class Main {
     public static void main(String[] args) {
-        // Thiết lập giao diện hệ thống để app trông đẹp hơn
+        // flatlaf look and feel
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (ClassNotFoundException | InstantiationException 
-               | IllegalAccessException | UnsupportedLookAndFeelException e) {
-            e.printStackTrace();
+            javax.swing.UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatLightLaf());
+            
+            // segoe ui font
+            java.awt.Font modernFont = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14);
+            java.util.Enumeration<Object> keys = javax.swing.UIManager.getDefaults().keys();
+            while (keys.hasMoreElements()) {
+                Object key = keys.nextElement();
+                Object value = javax.swing.UIManager.get(key);
+                if (value instanceof javax.swing.plaf.FontUIResource) {
+                    javax.swing.UIManager.put(key, new javax.swing.plaf.FontUIResource(modernFont));
+                }
+            }
+            
+            // rounded corners
+            javax.swing.UIManager.put("Button.arc", 10);
+            javax.swing.UIManager.put("Component.arc", 10);
+            javax.swing.UIManager.put("ProgressBar.arc", 10);
+            javax.swing.UIManager.put("TabbedPane.showTabSeparators", true);
+            
+        } catch (Exception ex) {
+            System.err.println("FlatLaf error: " + ex.getMessage());
         }
 
-        // Chạy ứng dụng trên Event Dispatch Thread (luồng xử lý giao diện của Swing)
+        // run
         javax.swing.SwingUtilities.invokeLater(() -> {
-            // Khởi tạo và hiển thị cửa sổ đăng nhập
-            LoginDialog login = new LoginDialog();
-            login.setVisible(true);
+            new LoginDialog().setVisible(true);
         });
+        
+        // TEMP: Test MainFrame without login
+        // new MainFrame(new User(1, "admin", "role", Role.ADMIN)).setVisible(true);
     }
 }

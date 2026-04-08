@@ -2,274 +2,138 @@ package com.oop.project.ui.components;
 
 import com.oop.project.model.Apartment;
 import com.oop.project.service.ApartmentService;
-import com.oop.project.service.ExportService;
+import com.oop.project.ui.components.ApartmentDetailDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ItemListener;
+import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.regex.Pattern;
 
-/**
- * FilterPanel - Bộ lọc nâng cao với giao diện hiện đại.
- * Hỗ trợ lọc đa điều kiện và cập nhật thời gian thực.
- */
 public class FilterPanel extends JPanel {
 
-    private final ApartmentService apartmentService;
-    private final ApartmentTable table;
+    private final ApartmentService service;
+    private JTable table;
+    private DefaultTableModel tableModel;
 
-    private JTextField txtMaxPrice;
-    private JTextField txtMinBedrooms;
-    private JTextField txtLocation;
-    private JComboBox<String> cboCategory;
-    private final ExportService exportService = new ExportService();
+    // Các thành phần bộ lọc
+    private JTextField txtSearch, txtPriceFrom, txtPriceTo;
+    private JComboBox<String> cbLocation, cbCategory;
 
-    private final Map<String, JCheckBox> amenityCheckboxes = new LinkedHashMap<>();
-    private List<Apartment> lastFiltered = new ArrayList<>();
+    // DATA TỈNH THÀNH NHÚNG THẲNG
+    private final String[] PROVINCES = {
+        "All Locations", "Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "An Giang", 
+        "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu", "Bắc Ninh", "Bến Tre", 
+        "Bình Định", "Bình Dương", "Bình Phước", "Bình Thuận", "Cà Mau", "Cao Bằng", 
+        "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", 
+        "Hà Giang", "Hà Nam", "Hà Tĩnh", "Hải Dương", "Hậu Giang", "Hòa Bình", 
+        "Hưng Yên", "Khánh Hòa", "Kiên Giang", "Kon Tum", "Lai Châu", "Lâm Đồng", 
+        "Lạng Sơn", "Lào Cai", "Long An", "Nam Định", "Nghệ An", "Ninh Bình", 
+        "Ninh Thuận", "Phú Thọ", "Phú Yên", "Quảng Bình", "Quảng Nam", "Quảng Ngãi", 
+        "Quảng Ninh", "Quảng Trị", "Sóc Trăng", "Sơn La", "Tây Ninh", "Thái Bình", 
+        "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang", "Trà Vinh", 
+        "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
+    };
 
     public FilterPanel(ApartmentService service) {
-        this.apartmentService = service;
-        this.table = new ApartmentTable();
-
+        this.service = service;
         setLayout(new BorderLayout(15, 15));
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(15, 15, 15, 15));
-
-        apartmentService.ensureApartmentAmenitiesIntegrated();
+        setBorder(new EmptyBorder(20, 20, 20, 20));
+        setBackground(Color.WHITE);
 
         initComponents();
-        attachRealTimeListeners();
-        reloadData();
     }
 
     private void initComponents() {
-        // --- KHU VỰC BỘ LỌC (TOP PANEL) ---
-        JPanel topPanel = new JPanel(new BorderLayout(0, 15));
-        topPanel.setOpaque(false);
+        // --- 1. KHU VỰC NHẬP LIỆU LỌC (TOP) ---
+        JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        pnlHeader.setBackground(Color.WHITE);
+        pnlHeader.setBorder(BorderFactory.createTitledBorder(
+            new EmptyBorder(5,0,5,0), "Filter Criteria", TitledBorder.LEFT, TitledBorder.TOP, 
+            new Font("Segoe UI", Font.BOLD, 14), new Color(44, 62, 80)));
 
-        JPanel filterCard = new JPanel();
-        filterCard.setLayout(new BoxLayout(filterCard, BoxLayout.Y_AXIS));
-        filterCard.setBackground(Color.WHITE);
-        filterCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220)),
-                new EmptyBorder(15, 20, 15, 20)
-        ));
+        txtSearch = new JTextField(10);
+        cbLocation = new JComboBox<>(PROVINCES);
+        txtPriceFrom = new JTextField(5);
+        txtPriceTo = new JTextField(5);
+        cbCategory = new JComboBox<>(new String[]{"All Types", "LUXURY", "STANDARD", "BUDGET"});
 
-        // 1. Nhóm lọc cơ bản (Row 1)
-        JPanel basicFilterPanel = new JPanel(new GridLayout(1, 4, 15, 0));
-        basicFilterPanel.setBackground(Color.WHITE);
-        basicFilterPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton btnSearch = new JButton("Apply Filter");
+        btnSearch.setBackground(new Color(52, 152, 219));
+        btnSearch.setForeground(Color.WHITE);
+        btnSearch.setFocusPainted(false);
+        btnSearch.addActionListener(e -> executeFilter());
 
-        basicFilterPanel.add(createInputGroup("💵 Giá tối đa ($):", txtMaxPrice = createStyledTextField()));
-        basicFilterPanel.add(createInputGroup("🛏️ Phòng ngủ (Min):", txtMinBedrooms = createStyledTextField()));
-        basicFilterPanel.add(createInputGroup("📍 Vị trí / Địa chỉ:", txtLocation = createStyledTextField()));
-        
-        cboCategory = new JComboBox<>(new String[]{"All", "Luxury", "Standard", "Budget"});
-        cboCategory.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        basicFilterPanel.add(createInputGroup("🏷️ Phân loại:", cboCategory));
+        JButton btnReset = new JButton("Reset");
+        btnReset.addActionListener(e -> resetFilters());
 
-        // 2. Nhóm tiện ích (Row 2)
-        JPanel amenityPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        amenityPanel.setBackground(Color.WHITE);
-        amenityPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(230, 230, 230)),
-                "Tiện ích đi kèm",
-                TitledBorder.LEFT,
-                TitledBorder.TOP,
-                new Font("Segoe UI", Font.BOLD, 13),
-                new Color(44, 62, 80)
-        ));
-        amenityPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pnlHeader.add(new JLabel("Keyword:")); pnlHeader.add(txtSearch);
+        pnlHeader.add(new JLabel("Location:")); pnlHeader.add(cbLocation);
+        pnlHeader.add(new JLabel("Price:")); pnlHeader.add(txtPriceFrom);
+        pnlHeader.add(new JLabel("-")); pnlHeader.add(txtPriceTo);
+        pnlHeader.add(new JLabel("Type:")); pnlHeader.add(cbCategory);
+        pnlHeader.add(btnSearch); pnlHeader.add(btnReset);
 
-        List<String> amenityNames = apartmentService.getAllAmenityNames();
-        for (String name : amenityNames) {
-            JCheckBox cb = new JCheckBox(name);
-            cb.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            cb.setBackground(Color.WHITE);
-            cb.setFocusPainted(false);
-            cb.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            amenityCheckboxes.put(name, cb);
-            amenityPanel.add(cb);
-        }
-
-        // 3. Thanh công cụ (Nút bấm)
-        JPanel actionBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        actionBar.setBackground(Color.WHITE);
-        actionBar.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JButton btnClear = createStyledButton("Xóa bộ lọc", new Color(149, 165, 166), Color.WHITE);
-        btnClear.addActionListener(e -> clearFilters());
-        
-        JButton btnExport = createStyledButton("📥 Xuất CSV", new Color(39, 174, 96), Color.WHITE);
-        btnExport.addActionListener(e -> exportCsv());
-
-        actionBar.add(btnClear);
-        actionBar.add(btnExport);
-
-        // Ghép các thành phần vào Filter Card
-        filterCard.add(basicFilterPanel);
-        filterCard.add(Box.createRigidArea(new Dimension(0, 15)));
-        filterCard.add(amenityPanel);
-        filterCard.add(Box.createRigidArea(new Dimension(0, 15)));
-        filterCard.add(actionBar);
-
-        topPanel.add(filterCard, BorderLayout.NORTH);
-
-        // --- BẢNG DỮ LIỆU ---
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
-        scrollPane.getViewport().setBackground(Color.WHITE);
-
-        add(topPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
-    }
-
-    // --- CÁC HÀM TIỆN ÍCH UI ---
-    
-    private JPanel createInputGroup(String labelText, JComponent inputComp) {
-        JPanel panel = new JPanel(new BorderLayout(0, 5));
-        panel.setBackground(Color.WHITE);
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lbl.setForeground(new Color(44, 62, 80));
-        panel.add(lbl, BorderLayout.NORTH);
-        panel.add(inputComp, BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JTextField createStyledTextField() {
-        JTextField txt = new JTextField();
-        txt.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txt.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                new EmptyBorder(6, 8, 6, 8)
-        ));
-        return txt;
-    }
-
-    private JButton createStyledButton(String text, Color bgColor, Color fgColor) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setBackground(bgColor);
-        btn.setForeground(fgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(130, 36));
-        
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btn.setBackground(bgColor.darker());
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                btn.setBackground(bgColor);
-            }
-        });
-        return btn;
-    }
-
-    private void clearFilters() {
-        // Tắt listener tạm thời nếu không muốn reloadData chạy liên tục khi clear
-        txtMaxPrice.setText("");
-        txtMinBedrooms.setText("");
-        txtLocation.setText("");
-        cboCategory.setSelectedIndex(0);
-        for (JCheckBox cb : amenityCheckboxes.values()) {
-            cb.setSelected(false);
-        }
-        reloadData();
-    }
-
-    // --- CÁC HÀM LOGIC GỐC (GIỮ NGUYÊN) ---
-
-    private void attachRealTimeListeners() {
-        DocumentListener docListener = new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { reloadData(); }
-            @Override public void removeUpdate(DocumentEvent e) { reloadData(); }
-            @Override public void changedUpdate(DocumentEvent e) { reloadData(); }
+        // --- 2. BẢNG HIỂN THỊ KẾT QUẢ (CENTER) ---
+        String[] columns = {"ID", "Code", "Address", "Location", "Price", "Area"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
+        table = new JTable(tableModel);
+        table.setRowHeight(30);
+        JScrollPane scrollPane = new JScrollPane(table);
 
-        txtMaxPrice.getDocument().addDocumentListener(docListener);
-        txtMinBedrooms.getDocument().addDocumentListener(docListener);
-        txtLocation.getDocument().addDocumentListener(docListener);
+        // --- 3. NÚT XEM CHI TIẾT (BOTTOM) ---
+        JPanel pnlFooter = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        pnlFooter.setBackground(Color.WHITE);
+        JButton btnDetail = new JButton("View Selected Detail");
+        btnDetail.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row != -1) new ApartmentDetailDialog(null, service.getById((int) table.getValueAt(row, 0))).setVisible(true);
+        });
+        pnlFooter.add(btnDetail);
 
-        ItemListener itemListener = e -> reloadData();
-        for (JCheckBox cb : amenityCheckboxes.values()) {
-            cb.addItemListener(itemListener);
-        }
-        cboCategory.addItemListener(itemListener);
+        add(pnlHeader, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(pnlFooter, BorderLayout.SOUTH);
     }
 
-    private void reloadData() {
-        Double maxPrice = null;
-        Integer minBedrooms = null;
-        String location = txtLocation.getText().trim();
-
-        try {
-            String max = txtMaxPrice.getText().trim();
-            if (!max.isEmpty()) maxPrice = Double.parseDouble(max);
-        } catch (NumberFormatException ignored) {}
-
-        try {
-            String minBed = txtMinBedrooms.getText().trim();
-            if (!minBed.isEmpty()) minBedrooms = Integer.parseInt(minBed);
-        } catch (NumberFormatException ignored) {}
-
-        List<String> amenities = new ArrayList<>();
-        for (Map.Entry<String, JCheckBox> e : amenityCheckboxes.entrySet()) {
-            if (e.getValue().isSelected()) {
-                amenities.add(e.getKey());
-            }
-        }
-
-        try {
-            List<Apartment> filtered = apartmentService.filterApartments(
-                    maxPrice, minBedrooms, location.isEmpty() ? null : location, amenities);
-
-            String cat = (String) cboCategory.getSelectedItem();
-            if (cat != null && !"All".equalsIgnoreCase(cat)) {
-                List<Apartment> byCat = new ArrayList<>();
-                for (Apartment a : filtered) {
-                    if (cat.equalsIgnoreCase(a.getCategory())) byCat.add(a);
-                }
-                filtered = byCat;
-            }
-
-            lastFiltered = filtered;
-            table.setApartments(filtered);
-        } catch (RuntimeException ex) {
-            System.err.println("Lỗi bộ lọc: " + ex.getMessage());
-        }
+    // Công cụ "tẩy trắng" tiếng Việt chấp mọi loại data cũ/mới
+    private String normalize(String s) {
+        if (s == null) return "";
+        String temp = Normalizer.normalize(s, Normalizer.Form.NFD);
+        String result = Pattern.compile("\\p{InCombiningDiacriticalMarks}+").matcher(temp).replaceAll("").toLowerCase();
+        return result.replace("tp. ", "").replace("tp.", "").replace("hcm", "ho chi minh")
+                     .replace("hn", "ha noi").replace("dn", "da nang").trim();
     }
 
-    private void exportCsv() {
-        if (lastFiltered == null || lastFiltered.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không có dữ liệu để xuất file.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
+    private void executeFilter() {
+        String keyword = normalize(txtSearch.getText());
+        String locFilter = normalize(cbLocation.getSelectedItem().toString());
+        String typeFilter = cbCategory.getSelectedItem().toString();
+
+        List<Apartment> all = service.findAll();
+        tableModel.setRowCount(0); // Xóa bảng trước khi hiện kết quả mới
+
+        for (Apartment a : all) {
+            boolean mKey = keyword.isEmpty() || normalize(a.getListingCode()).contains(keyword) || normalize(a.getAddress()).contains(keyword);
+            boolean mLoc = locFilter.equals("all locations") || normalize(a.getLocation()).contains(locFilter);
+            boolean mType = typeFilter.equals("All Types") || a.getType().name().equalsIgnoreCase(typeFilter);
+            
+            if (mKey && mLoc && mType) {
+                tableModel.addRow(new Object[]{ a.getId(), a.getListingCode(), a.getAddress(), a.getLocation(), "$" + a.getPrice(), a.getArea() + " m²" });
+            }
         }
+        if(tableModel.getRowCount() == 0) JOptionPane.showMessageDialog(this, "Không tìm thấy căn hộ nào!");
+    }
 
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Xuất danh sách đã lọc ra CSV");
-        int r = chooser.showSaveDialog(this);
-        if (r != JFileChooser.APPROVE_OPTION) return;
-
-        String path = chooser.getSelectedFile().getAbsolutePath();
-        if (!path.toLowerCase().endsWith(".csv")) path = path + ".csv";
-
-        try {
-            final String finalPath = path;
-            exportService.exportToCSV(lastFiltered, finalPath, apt -> apartmentService.getAmenitiesForApartment(apt.getId()));
-            JOptionPane.showMessageDialog(this, "Xuất file thành công!\n" + finalPath, "Thành công", JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi xuất CSV: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+    private void resetFilters() {
+        txtSearch.setText(""); cbLocation.setSelectedIndex(0);
+        txtPriceFrom.setText(""); txtPriceTo.setText("");
+        cbCategory.setSelectedIndex(0); tableModel.setRowCount(0);
     }
 }

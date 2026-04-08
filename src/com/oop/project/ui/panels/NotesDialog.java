@@ -20,7 +20,7 @@ public class NotesDialog extends JDialog {
     private final DefaultTableModel model;
 
     public NotesDialog(Window owner, NoteRepository noteRepository, int apartmentId, int currentUserId) {
-        super(owner, "Ghi chú căn hộ ID = " + apartmentId, ModalityType.APPLICATION_MODAL);
+        super(owner, "Apartment ID note = " + apartmentId, ModalityType.APPLICATION_MODAL);
         this.noteRepository = noteRepository;
         this.apartmentId = apartmentId;
         this.currentUserId = currentUserId;
@@ -29,7 +29,7 @@ public class NotesDialog extends JDialog {
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(8, 8));
 
-        model = new DefaultTableModel(new Object[]{"Note ID", "User ID", "Nội dung"}, 0) {
+        model = new DefaultTableModel(new Object[]{"Note ID", "User ID", "Content"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -81,12 +81,12 @@ public class NotesDialog extends JDialog {
         area.setLineWrap(true);
         area.setWrapStyleWord(true);
         int result = JOptionPane.showConfirmDialog(
-                this, new JScrollPane(area), "Thêm ghi chú", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                this, new JScrollPane(area), "Add notes", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return;
 
         String text = area.getText().trim();
         if (text.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Nội dung ghi chú không được để trống!");
+            JOptionPane.showMessageDialog(this, "Content cannot be empty!");
             return;
         }
 
@@ -94,14 +94,14 @@ public class NotesDialog extends JDialog {
             noteRepository.save(new Note(0, apartmentId, currentUserId, text));
             loadNotes();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi thêm ghi chú: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Error adding note: " + ex.getMessage());
         }
     }
 
     private void editSelected() {
         Integer noteId = getSelectedNoteId();
         if (noteId == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ghi chú để sửa!");
+            JOptionPane.showMessageDialog(this, "Please select a note to edit!");
             return;
         }
 
@@ -115,12 +115,12 @@ public class NotesDialog extends JDialog {
         area.setCaretPosition(area.getText().length());
 
         int result = JOptionPane.showConfirmDialog(
-                this, new JScrollPane(area), "Sửa ghi chú (ID = " + noteId + ")", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                this, new JScrollPane(area), "Edit note (ID = " + noteId + ")", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return;
 
         String updated = area.getText().trim();
         if (updated.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Nội dung ghi chú không được để trống!");
+            JOptionPane.showMessageDialog(this, "Content cannot be empty!");
             return;
         }
 
@@ -129,26 +129,26 @@ public class NotesDialog extends JDialog {
             noteRepository.update(new Note(noteId, apartmentId, currentUserId, updated));
             loadNotes();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi sửa ghi chú: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Error editing note: " + ex.getMessage());
         }
     }
 
     private void deleteSelected() {
         Integer noteId = getSelectedNoteId();
         if (noteId == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ghi chú để xóa!");
+            JOptionPane.showMessageDialog(this, "Please select a note to delete!");
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(
-                this, "Xóa ghi chú ID = " + noteId + "?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+                this, "Delete note ID = " + noteId + "?", "Confirm", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
         try {
             noteRepository.delete(noteId);
             loadNotes();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi xóa ghi chú: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Error deleting note: " + ex.getMessage());
         }
     }
 }

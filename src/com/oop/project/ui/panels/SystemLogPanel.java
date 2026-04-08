@@ -36,7 +36,7 @@ public class SystemLogPanel extends JPanel {
 
     private void initComponents() {
         // --- 1. HEADER TIEU ĐỀ ---
-        JLabel lblHeader = new JLabel("⚙️ Nhật Ký Hệ Thống (System Logs)");
+        JLabel lblHeader = new JLabel("System Logs");
         lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblHeader.setForeground(new Color(44, 62, 80));
         lblHeader.setBorder(new EmptyBorder(0, 0, 15, 0));
@@ -51,7 +51,7 @@ public class SystemLogPanel extends JPanel {
         // ==========================================
         // TAB 1: NHẬT KÝ ĐĂNG NHẬP (LOGIN LOGS)
         // ==========================================
-        loginTable = createStyledTable(new String[]{"ID", "Username", "Hành động", "Thời gian"});
+        loginTable = createStyledTable(new String[]{"ID", "Username", "Activity", "Timestamp"});
         
         // Căn chỉnh độ rộng cột cho Login Table
         loginTable.getColumnModel().getColumn(0).setMaxWidth(80);
@@ -67,7 +67,7 @@ public class SystemLogPanel extends JPanel {
         loginScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
         loginPanel.add(loginScroll, BorderLayout.CENTER);
 
-        JButton btnRefreshLogin = createStyledButton("🔄 Làm mới Login Logs", new Color(52, 152, 219));
+        JButton btnRefreshLogin = createStyledButton("Refresh", new Color(52, 152, 219));
         btnRefreshLogin.addActionListener(e -> loadLoginLogs());
         
         JPanel loginBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -78,7 +78,7 @@ public class SystemLogPanel extends JPanel {
         // ==========================================
         // TAB 2: NHẬT KÝ THAO TÁC (AUDIT LOGS)
         // ==========================================
-        auditTable = createStyledTable(new String[]{"ID", "Username", "Mã căn hộ", "Hành động", "Thời gian", "Chi tiết"});
+        auditTable = createStyledTable(new String[]{"ID", "Username", "Apartment ID", "Activity", "Timestamp", "Details"});
         
         // Căn chỉnh độ rộng cột cho Audit Table
         auditTable.getColumnModel().getColumn(0).setMaxWidth(60);
@@ -96,7 +96,7 @@ public class SystemLogPanel extends JPanel {
         auditScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
         auditPanel.add(auditScroll, BorderLayout.CENTER);
 
-        JButton btnRefreshAudit = createStyledButton("🔄 Làm mới Audit Logs", new Color(39, 174, 96));
+        JButton btnRefreshAudit = createStyledButton("Refresh", new Color(39, 174, 96));
         btnRefreshAudit.addActionListener(e -> loadAuditLogs());
         
         JPanel auditBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -105,8 +105,8 @@ public class SystemLogPanel extends JPanel {
         auditPanel.add(auditBottom, BorderLayout.SOUTH);
 
         // Thêm vào Tabs
-        tabs.addTab("🔑 Đăng Nhập / Đăng Xuất", loginPanel);
-        tabs.addTab("📝 Thao Tác Dữ Liệu", auditPanel);
+        tabs.addTab("Login Logs", loginPanel);
+        tabs.addTab("Audit Logs", auditPanel);
 
         add(tabs, BorderLayout.CENTER);
     }
@@ -199,7 +199,7 @@ public class SystemLogPanel extends JPanel {
                 });
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi tải login logs: " + e.getMessage(), "Lỗi Database", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Login logs faulty: " + e.getMessage(), "Database faulty", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -227,7 +227,7 @@ public class SystemLogPanel extends JPanel {
                 });
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi tải audit logs: " + e.getMessage(), "Lỗi Database", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Audit logs faulty: " + e.getMessage(), "Database faulty", JOptionPane.ERROR_MESSAGE);
         }
     }
 }

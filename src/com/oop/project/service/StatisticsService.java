@@ -1,76 +1,49 @@
 package com.oop.project.service;
 
 import com.oop.project.model.Apartment;
-import com.oop.project.model.ApartmentType;
 import com.oop.project.repository.ApartmentRepository;
+import com.oop.project.repository.ContractRepository;
 import com.oop.project.util.DatabaseConnection;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
+import java.sql.*;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * StatisticsService - Cung cấp các số liệu thống kê cho Dashboard (FR-5.4).
- * Hỗ trợ tính toán trung bình giá, đếm theo khu vực, loại hình và lượt yêu thích.
- */
 public class StatisticsService {
-    private final ApartmentRepository repository;
+    private final ApartmentRepository apartmentRepo;
+    private final ContractRepository contractRepo;
 
     public StatisticsService() {
-        this.repository = new ApartmentRepository();
+        this.apartmentRepo = new ApartmentRepository();
+        this.contractRepo = new ContractRepository();
     }
 
-    /** Lấy tổng số lượng căn hộ có trong hệ thống */
     public int getTotalApartments() {
-        return repository.findAll().size();
+        return apartmentRepo.findAll().size();
     }
 
-    /** * Thống kê số lượng căn hộ theo từng loại hình (FR-5.2)
-     * (Luxury, Standard, Budget hoặc Apartment, Studio...)
-     */
-    public Map<ApartmentType, Long> getCountByType() {
-        List<Apartment> all = repository.findAll();
-        return all.stream().collect(Collectors.groupingBy(Apartment::getType, Collectors.counting()));
+    public double getOccupancyRate() {
+        try {
+            int total = getTotalApartments();
+            if (total == 0) return 0.0;
+            int active = contractRepo.countActiveContracts();
+            return ((double) active / total) * 100;
+        } catch (SQLException e) { return 0.0; }
     }
 
-    /** Tính giá trung bình của tất cả căn hộ (FR-5.4) */
-    public double getAveragePrice() {
-        List<Apartment> all = repository.findAll();
-        return all.stream().mapToDouble(Apartment::getPrice).average().orElse(0.0);
+    public int getActiveContractsCount() {
+        try {
+            return contractRepo.countActiveContracts();
+        } catch (SQLException e) { return 0; }
     }
 
-    /** * Thống kê số lượng căn hộ theo khu vực/vị trí (FR-5.4)
-     * Sử dụng Java Stream để nhóm dữ liệu từ danh sách có sẵn.
-     */
+    public double getEstimatedMonthlyRevenue() {
+        try {
+            return contractRepo.getTotalMonthlyRevenue();
+        } catch (SQLException e) { return 0.0; }
+    }
+
     public Map<String, Long> getCountByLocation() {
-        List<Apartment> all = repository.findAll();
-        return all.stream()
-                  .collect(Collectors.groupingBy(
-                          Apartment::getLocation,
-                          Collectors.counting()
-                  ));
-    }
-
-    /** * Tính tổng số lượt yêu thích trên toàn hệ thống (FR-5.4)
-     * Truy vấn trực tiếp từ bảng favorites để tối ưu hiệu năng.
-     */
-    public int getTotalFavorites() {
-        String sql = "SELECT COUNT(*) AS total FROM favorites";
-        try (Connection conn = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (SQLException e) {
-            // Log lỗi ra console để debug nhưng không làm crash giao diện Dashboard
-            System.err.println("Lỗi khi thống kê Favorites: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return 0;
+        return apartmentRepo.findAll().stream()
+                  .collect(Collectors.groupingBy(Apartment::getLocation, Collectors.counting()));
     }
 }
