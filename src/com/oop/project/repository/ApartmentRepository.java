@@ -20,9 +20,10 @@ public class ApartmentRepository implements IRepository<Apartment, Integer> {
             rs.getString("location"),
             rs.getDouble("price"),
             rs.getInt("bedrooms"),
-            rs.getInt("size_sqft"),         // Khớp schema.sql
+            rs.getInt("size_m2"),
             ApartmentType.valueOf(rs.getString("category").toUpperCase()),
-            rs.getInt("created_by")
+            rs.getInt("created_by"),
+            rs.getString("description")
         );
     }
 
@@ -61,24 +62,39 @@ public class ApartmentRepository implements IRepository<Apartment, Integer> {
 
     @Override
     public void save(Apartment apt) {
-        String sql = "INSERT INTO apartments (listing_code, address, location, price, bedrooms, size_sqft, category, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        // FR-1.3: Prevent duplicate listing codes
+        String checkSql = "SELECT COUNT(*) FROM apartments WHERE listing_code = ?";
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement check = conn.prepareStatement(checkSql)) {
+            check.setString(1, apt.getListingCode());
+            ResultSet rs = check.executeQuery();
+            if (rs.next() && rs.getInt(1) > 0) {
+                throw new DatabaseException("Listing code '" + apt.getListingCode() + "' already exists!", null);
+            }
+        } catch (SQLException e) { throw new DatabaseException("Error checking duplicate", e); }
+
+        String sql = "INSERT INTO apartments (listing_code, address, location, price, bedrooms, size_m2, category, created_by, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, apt.getListingCode());
             stmt.setString(2, apt.getAddress());
             stmt.setString(3, apt.getLocation());
             stmt.setDouble(4, apt.getPrice());
             stmt.setInt(5, apt.getBedrooms());
             stmt.setInt(6, apt.getArea());
-            stmt.setString(7, apt.getType().name());
+            stmt.setString(7, apt.getType() != null ? apt.getType().name() : "STANDARD");
             stmt.setInt(8, apt.getCreatedBy());
+            stmt.setString(9, apt.getDescription());
             stmt.executeUpdate();
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) apt.setId(keys.getInt(1));
+            }
         } catch (SQLException e) { throw new DatabaseException("Error saving apartment", e); }
     }
 
     @Override
     public void update(Apartment apt) {
-        String sql = "UPDATE apartments SET listing_code=?, address=?, location=?, price=?, bedrooms=?, size_sqft=?, category=? WHERE apartment_id=?";
+        String sql = "UPDATE apartments SET listing_code=?, address=?, location=?, price=?, bedrooms=?, size_m2=?, category=?, description=? WHERE apartment_id=?";
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, apt.getListingCode());
@@ -87,8 +103,9 @@ public class ApartmentRepository implements IRepository<Apartment, Integer> {
             stmt.setDouble(4, apt.getPrice());
             stmt.setInt(5, apt.getBedrooms());
             stmt.setInt(6, apt.getArea());
-            stmt.setString(7, apt.getType().name());
-            stmt.setInt(8, apt.getId());
+            stmt.setString(7, apt.getType() != null ? apt.getType().name() : "STANDARD");
+            stmt.setString(8, apt.getDescription());
+            stmt.setInt(9, apt.getId());
             stmt.executeUpdate();
         } catch (SQLException e) { throw new DatabaseException("Error updating apartment", e); }
     }
@@ -192,7 +209,34 @@ public class ApartmentRepository implements IRepository<Apartment, Integer> {
     }
 
     public void seedApartmentAmenitiesIfEmpty() {
-        // Hàm này giữ trống để tránh làm hỏng database nếu bạn đã chạy seed.sql
+        // intentionally empty
+    }
+
+    /**
+     * FR-1.2: Save selected amenity names for a given apartment.
+     * Clears existing links first, then re-inserts selected ones.
+     */
+    public void saveAmenities(int apartmentId, List<String> amenityNames) {
+        String deleteSql = "DELETE FROM apartment_amenities WHERE apartment_id = ?";
+        String selectId  = "SELECT amenity_id FROM amenities WHERE amenity_name = ?";
+        String insertSql = "INSERT IGNORE INTO apartment_amenities (apartment_id, amenity_id) VALUES (?, ?)";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection()) {
+            try (PreparedStatement del = conn.prepareStatement(deleteSql)) {
+                del.setInt(1, apartmentId); del.executeUpdate();
+            }
+            for (String name : amenityNames) {
+                try (PreparedStatement sel = conn.prepareStatement(selectId)) {
+                    sel.setString(1, name);
+                    ResultSet rs = sel.executeQuery();
+                    if (rs.next()) {
+                        int amenityId = rs.getInt(1);
+                        try (PreparedStatement ins = conn.prepareStatement(insertSql)) {
+                            ins.setInt(1, apartmentId); ins.setInt(2, amenityId); ins.executeUpdate();
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) { throw new DatabaseException("Error saving amenities", e); }
     }
     
     // Hàm tìm kiếm theo keyword (nếu ListingPanel của bạn có ô Search)

@@ -14,13 +14,14 @@ public class Apartment {
     private ApartmentType type; // Loại hình (Căn hộ, Studio, v.v.)
     private int createdBy;
     private String category; // Phân loại (Luxury, Standard, Budget) - FR-4.3
+    private String description; // User narrative description
 
     /**
      * Constructor đầy đủ để khởi tạo căn hộ.
      * Tự động thực hiện phân loại dựa trên giá và diện tích ngay khi khởi tạo (FR-4.3).
      */
     public Apartment(int id, String listingCode, String address, String location, 
-                     double price, int bedrooms, int area, ApartmentType type, int createdBy) {
+                     double price, int bedrooms, int area, ApartmentType type, int createdBy, String description) {
         this.id = id;
         this.listingCode = listingCode;
         this.address = address;
@@ -30,22 +31,22 @@ public class Apartment {
         this.area = area;
         this.type = type;
         this.createdBy = createdBy;
+        this.description = description;
         
         // Thực hiện phân loại tự động (FR-4.3)
         this.category = classifyByPriceAndArea(price, area);
     }
 
     /**
-     * Logic phân loại căn hộ dựa trên giá và diện tích (FR-4.3).
-     * Quy tắc (thực tế):
-     * - Luxury nếu price >= 2000 hoặc area >= 1200
-     * - Standard nếu price >= 700 hoặc area >= 700
-     * - Budget còn lại
+     * Classify apartment by price only (FR-4.3):
+     *  $0    – $499   → Budget
+     *  $500  – $999   → Standard
+     *  $1000+         → Luxury
      */
     private String classifyByPriceAndArea(double price, int area) {
-        if (price >= 2000 || area >= 1200) {
+        if (price >= 1000) {
             return "Luxury";
-        } else if (price >= 700 || area >= 700) {
+        } else if (price >= 500) {
             return "Standard";
         } else {
             return "Budget";
@@ -63,6 +64,7 @@ public class Apartment {
     public ApartmentType getType() { return type; }
     public int getCreatedBy() { return createdBy; }
     public String getCategory() { return category; }
+    public String getDescription() { return description; }
 
     // --- CÁC HÀM BỔ TRỢ ĐỂ XÓA LỖI ĐỎ TẠI CÁC FILE KHÁC ---
     
@@ -89,7 +91,9 @@ public class Apartment {
 
     public void setArea(int area) {
         this.area = area;
-        this.category = classifyByPriceAndArea(this.price, area); // Cập nhật lại phân loại khi diện tích đổi
+        this.category = classifyByPriceAndArea(this.price, area);
     }
+
+    public void setId(int id) { this.id = id; }
 }
 

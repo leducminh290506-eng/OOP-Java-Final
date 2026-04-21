@@ -67,18 +67,18 @@ public class MainFrame extends JFrame {
 
         ListingPanel listingPanel   = new ListingPanel(apartmentService, currentUser);
         FilterPanel filterPanel = new FilterPanel(apartmentService);        
-        ContractPanel contractPanel = new ContractPanel(currentUser); 
+        
+        // ĐÃ FIX LỖI Ở ĐÂY: Thêm apartmentService vào cho khớp với bản ContractPanel xịn
+        ContractPanel contractPanel = new ContractPanel(currentUser, apartmentService); 
+        
         DashboardPanel dashboard    = new DashboardPanel(); 
         
-        // SỬA LỖI 1 & 2: Dùng biến toàn cục (không có chữ FavoritePanel ở đầu)
+        // Dùng biến toàn cục (không có chữ FavoritePanel ở đầu)
         this.favoritePanel = new FavoritePanel(apartmentService, currentUser);        
 
         cardPanel.add(listingPanel, "Listings");
         cardPanel.add(filterPanel, "Filters");
-        
-        // SỬA LỖI 3: Dòng này lúc nãy ông bị thiếu, nên nó đéo show ra được!
         cardPanel.add(this.favoritePanel, "Favorites"); 
-        
         cardPanel.add(contractPanel, "Contracts");
         cardPanel.add(dashboard, "Dashboard");
 
@@ -166,7 +166,7 @@ public class MainFrame extends JFrame {
 
         // Sự kiện Click
         btn.addActionListener(e -> {
-            // SỬA LỖI 4: Nếu nút được bấm là "Favorites", thì bắt nó đi lấy dữ liệu mới!
+            // Nếu nút được bấm là "Favorites", thì bắt nó đi lấy dữ liệu mới!
             if (cardName.equals("Favorites")) {
                 refreshFavorites();
             }

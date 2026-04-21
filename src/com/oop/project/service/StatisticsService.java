@@ -44,6 +44,32 @@ public class StatisticsService {
 
     public Map<String, Long> getCountByLocation() {
         return apartmentRepo.findAll().stream()
-                  .collect(Collectors.groupingBy(Apartment::getLocation, Collectors.counting()));
+                  .collect(Collectors.groupingBy(a -> {
+                      String loc = a.getLocation();
+                      if (loc == null || loc.isBlank()) return "Unknown";
+                      int comma = loc.lastIndexOf(',');
+                      return (comma >= 0) ? loc.substring(comma + 1).trim() : loc.trim();
+                  }, Collectors.counting()));
+    }
+
+    /** FR-5.4: Average price across all apartments */
+    public double getAveragePrice() {
+        return apartmentRepo.findAll().stream()
+            .mapToDouble(Apartment::getPrice)
+            .average()
+            .orElse(0.0);
+    }
+
+    /** FR-5.4: Total number of favorited entries across all users */
+    public int getFavoritesCount() {
+        try {
+            String sql = "SELECT COUNT(*) FROM favorites";
+            try (Connection conn = com.oop.project.util.DatabaseConnection.getInstance().getConnection();
+                 java.sql.Statement stmt = conn.createStatement();
+                 java.sql.ResultSet rs = stmt.executeQuery(sql)) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) { return 0; }
+        return 0;
     }
 }

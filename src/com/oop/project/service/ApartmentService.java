@@ -57,4 +57,9 @@ public class ApartmentService {
     public void save(Apartment apt) { repository.save(apt); }
     public void update(Apartment apt) { repository.update(apt); }
     public void delete(int id) { repository.delete(id); }
+
+    /** FR-1.2: Persist amenity selections for an apartment */
+    public void saveAmenities(int apartmentId, List<String> amenityNames) {
+        repository.saveAmenities(apartmentId, amenityNames);
+    }
 }
