@@ -98,4 +98,17 @@ public class ContractRepository {
         }
         return null;
     }
+
+    /** Check if an apartment currently has an active lease contract */
+    public boolean isApartmentCurrentlyRented(int apartmentId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM lease_contracts WHERE apartment_id = ? AND end_date >= CURRENT_DATE";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, apartmentId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
 }

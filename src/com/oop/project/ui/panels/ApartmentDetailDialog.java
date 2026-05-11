@@ -2,7 +2,9 @@ package com.oop.project.ui.panels;
 
 import com.oop.project.model.Apartment;
 import com.oop.project.model.Note;
+import com.oop.project.model.LeaseContract;
 import com.oop.project.repository.NoteRepository;
+import com.oop.project.repository.ContractRepository;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -71,6 +73,34 @@ public class ApartmentDetailDialog extends JDialog {
         bodyPanel.add(createInfoRow("Bedrooms:", String.valueOf(apartment.getBedrooms())));
         bodyPanel.add(createInfoRow("Area:", area + " m²"));
         bodyPanel.add(createInfoRow("Price / m²:", String.format("$%,.2f", pricePerSqft)));
+        bodyPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Rental Period — query lease_contracts for active contract
+        bodyPanel.add(createSectionTitle("Rental Status"));
+        try {
+            ContractRepository contractRepo = new ContractRepository();
+            int actualAptId = (aptId > 0) ? aptId : apartment.getId();
+            List<LeaseContract> allContracts = contractRepo.findAll();
+            LeaseContract activeContract = null;
+            for (LeaseContract c : allContracts) {
+                if (c.getApartmentId() == actualAptId 
+                    && (c.getEndDate() != null && !c.getEndDate().isBefore(java.time.LocalDate.now()))) {
+                    activeContract = c;
+                    break;
+                }
+            }
+            if (activeContract != null) {
+                bodyPanel.add(createInfoRow("Status:", "Rented"));
+                bodyPanel.add(createInfoRow("Customer:", activeContract.getCustomerName()));
+                bodyPanel.add(createInfoRow("Rented from:", activeContract.getStartDate().toString()));
+                bodyPanel.add(createInfoRow("Rented to:", activeContract.getEndDate().toString()));
+                bodyPanel.add(createInfoRow("Monthly Rent:", String.format("$%,.2f", activeContract.getMonthlyRent())));
+            } else {
+                bodyPanel.add(createInfoRow("Status:", "Vacant — No active lease"));
+            }
+        } catch (Exception ex) {
+            bodyPanel.add(createInfoRow("Status:", "Unable to fetch rental data"));
+        }
         bodyPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // Amenities

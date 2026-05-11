@@ -3,7 +3,7 @@ package com.oop.project.ui.panels;
 import com.oop.project.model.Apartment;
 import com.oop.project.model.User;
 import com.oop.project.service.ApartmentService;
-import com.oop.project.ui.components.ApartmentDetailDialog;
+import com.oop.project.repository.NoteRepository;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -48,7 +48,14 @@ public class FavoritePanel extends JPanel {
         JButton btnDetail = new JButton("View Detail");
         btnDetail.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row != -1) new ApartmentDetailDialog(null, service.getById((int) table.getValueAt(row, 0))).setVisible(true);
+            if (row != -1) {
+                int aptId = (int) table.getValueAt(row, 0);
+                Apartment apt = service.getById(aptId);
+                List<String> amenities = service.getAmenitiesForApartment(aptId);
+                NoteRepository noteRepo = new NoteRepository();
+                new ApartmentDetailDialog(
+                    SwingUtilities.getWindowAncestor(this), apt, amenities, noteRepo, aptId).setVisible(true);
+            }
         });
         
         // Nút Remove để hủy yêu thích ngay tại đây

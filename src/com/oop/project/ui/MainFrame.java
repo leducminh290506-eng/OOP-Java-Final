@@ -103,15 +103,34 @@ public class MainFrame extends JFrame {
         sidebar.setBackground(new Color(44, 62, 80));
         sidebar.setPreferredSize(new Dimension(220, 0));
 
-        // Logo tiêu đề
-        JLabel titleLabel = new JLabel("  Real Estate Management System");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        // ── App title (word-wrapped with HTML) ──
+        JLabel titleLabel = new JLabel("<html><div style='text-align:center;'>Real Estate<br>Management</div></html>");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titleLabel.setForeground(Color.WHITE);
-        titleLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(18, 10, 8, 10));
         sidebar.add(titleLabel);
 
-        // create navigation buttons
+        // ── Greeting: Hello, username ──
+        JLabel greetLabel = new JLabel("Hello, " + currentUser.getUsername());
+        greetLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        greetLabel.setForeground(new Color(149, 165, 166));
+        greetLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        greetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        greetLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+        greetLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 12, 10));
+        sidebar.add(greetLabel);
+
+        // ── Thin separator ──
+        JSeparator sep = new JSeparator();
+        sep.setForeground(new Color(52, 73, 94));
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        sidebar.add(sep);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+
+        // ── Navigation buttons ──
         JButton btnListings = createNavButton("Listings", "Listings");
         sidebar.add(btnListings);
         sidebar.add(createNavButton("Filters", "Filters"));
@@ -119,12 +138,51 @@ public class MainFrame extends JFrame {
         sidebar.add(createNavButton("Contracts", "Contracts"));
         sidebar.add(createNavButton("Dashboard", "Dashboard"));
 
-        // Đẩy các phần sau xuống dưới
-        sidebar.add(Box.createVerticalGlue());
-
+        // System Logs (ADMIN only) — placed BEFORE the glue so it's above Logout
         if (currentUser.getRole() == Role.ADMIN) {
             sidebar.add(createNavButton("System Logs", "SystemLogs"));
         }
+
+        // Đẩy Logout xuống dưới cùng
+        sidebar.add(Box.createVerticalGlue());
+
+        // ── LOG OUT button ──
+        JButton btnLogout = new JButton("LOG OUT");
+        btnLogout.putClientProperty("JButton.buttonType", "none"); // Prevent FlatLaf override
+        btnLogout.setMaximumSize(new Dimension(180, 36));
+        btnLogout.setPreferredSize(new Dimension(180, 36));
+        btnLogout.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnLogout.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnLogout.setFocusPainted(false);
+        btnLogout.setBorderPainted(false);
+        btnLogout.setOpaque(true);
+        btnLogout.setBackground(new Color(231, 76, 60));
+        btnLogout.setForeground(Color.WHITE);
+        btnLogout.setHorizontalAlignment(SwingConstants.CENTER);
+        btnLogout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        btnLogout.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnLogout.setBackground(new Color(192, 57, 43));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnLogout.setBackground(new Color(231, 76, 60));
+            }
+        });
+
+        btnLogout.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to logout?", "Confirm Logout", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                isLoggingOut = true;
+                authService.logout(currentUser);
+                dispose();
+                new LoginDialog().setVisible(true);
+            }
+        });
+
+        sidebar.add(btnLogout);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
 
         // Mặc định cho nút đầu tiên sáng lên khi vừa mở App
         updateButtonStyles(btnListings);

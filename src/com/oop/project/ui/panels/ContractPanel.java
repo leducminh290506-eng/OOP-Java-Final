@@ -189,6 +189,13 @@ public class ContractPanel extends JPanel {
                 double rent = Double.parseDouble(txtRent.getText().trim());
                 String notes = txtNotes.getText().trim();
 
+                // Validate rent must be positive
+                if (rent <= 0) {
+                    JOptionPane.showMessageDialog(this, "Monthly rent must be greater than zero!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 contractRepo.save(new LeaseContract(0, aptId, customerName, startDate, endDate, rent, notes));
                 loadDataToTable();
                 JOptionPane.showMessageDialog(this, "Contract created successfully!");

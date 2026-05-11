@@ -15,6 +15,7 @@ public class Apartment {
     private int createdBy;
     private String category; // Phân loại (Luxury, Standard, Budget) - FR-4.3
     private String description; // User narrative description
+    private String status; // AVAILABLE, RENTED, MAINTENANCE
 
     /**
      * Constructor đầy đủ để khởi tạo căn hộ.
@@ -22,6 +23,11 @@ public class Apartment {
      */
     public Apartment(int id, String listingCode, String address, String location, 
                      double price, int bedrooms, int area, ApartmentType type, int createdBy, String description) {
+        this(id, listingCode, address, location, price, bedrooms, area, type, createdBy, description, "AVAILABLE");
+    }
+
+    public Apartment(int id, String listingCode, String address, String location, 
+                     double price, int bedrooms, int area, ApartmentType type, int createdBy, String description, String status) {
         this.id = id;
         this.listingCode = listingCode;
         this.address = address;
@@ -32,6 +38,7 @@ public class Apartment {
         this.type = type;
         this.createdBy = createdBy;
         this.description = description;
+        this.status = (status != null) ? status : "AVAILABLE";
         
         // Thực hiện phân loại tự động (FR-4.3)
         this.category = classifyByPriceAndArea(price, area);
@@ -75,8 +82,9 @@ public class Apartment {
 
     /** Xóa lỗi tại ApartmentTable.java [Ln 33] */
     public String getStatus() { 
-        return "Available"; 
-    } 
+        return status; 
+    }
+    public void setStatus(String status) { this.status = status; }
 
     /** Xóa lỗi tại FavoritePanel.java */
     public boolean isFavorite() { 

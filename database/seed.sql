@@ -19,7 +19,10 @@ INSERT INTO users (username, password_hash, role) VALUES
 ('Le_Duc_Minh', '00e71b6c592a74c8cd300c6daba5d5baeda7661a50cc0c62e5c3de21866c3a64', 'ADMIN'),
 ('Tran_Tue_Khang', '756669c5cff1c9d7cb728ee9a579fa5498600da6cea1fca59ed36a606e60cf1f', 'ADMIN'),
 ('Nguyen_Bao_Tai', '9efa074e64a3093c644d49404c839a81ab6efeffac81ab387a18d10e257ddedd', 'ADMIN'),
-('Hoang_Thi_Ngoc_Han', '8add439a140c5e33a3298d18bd8cdaf5d99bd44bc0d1f8346b59d74d093ef232', 'ADMIN');
+('Hoang_Thi_Ngoc_Han', '8add439a140c5e33a3298d18bd8cdaf5d99bd44bc0d1f8346b59d74d093ef232', 'ADMIN'),
+('Le_Hai_Dang', 'c3644845ebefe2498f2ed7e8c75a724e0bbed3dfd986624ebab31683ae2cdf21', 'AGENT'),
+('Pham_Minh_Anh', 'a63f9104ecee5876f9cc7e6f5e53adf845007a2457f648ff6d26721a335d94f2', 'AGENT'),
+('Vu_Duc_Thang', 'a37daa6d648fb55d1f664327415934c7a75ae74e03af6c9986b53e8d0d51b5e9', 'AGENT');
 
 -- 3. Amenities
 INSERT INTO amenities (amenity_name) VALUES
@@ -38,7 +41,7 @@ INSERT INTO apartments (listing_code, address, location, price, bedrooms, size_m
 -- ONE_BEDROOM (One bedroom apartment)
 ('APT-009', '15 Đào Duy Từ, Hàng Buồm', 'Hoàn Kiếm, Hà Nội', 650.00, 1, 550, 'ONE_BEDROOM', 1),
 ('APT-010', 'Vinhomes Ocean Park, Đa Tốn', 'Gia Lâm, Hà Nội', 500.00, 1, 500, 'ONE_BEDROOM', 2),
-('APT-011', 'Masteri Centre Point, Quận 9', 'TP. Thủ Đức, HCM', 550.00, 1, 520, 'ONE_BEDROOM', 1),
+('APT-011', 'Masteri Centre Point, Quận 9', 'TP. Thủ Đức, TP.HCM', 550.00, 1, 520, 'ONE_BEDROOM', 1),
 
 -- STANDARD & TWO_BEDROOM (Standard family apartment)
 ('APT-012', 'Times City, 458 Minh Khai', 'Hai Bà Trưng, Hà Nội', 900.00, 2, 850, 'STANDARD', 2),
@@ -106,7 +109,3 @@ INSERT INTO audit_logs (user_id, apartment_id, action, details) VALUES
 (2, 2, 'CREATE', 'Luxury apartment added'),
 (3, 3, 'CREATE', 'Budget apartment added'),
 (3, 4, 'UPDATE', 'Price updated after market review');
-
--- Đổi trạng thái một vài căn hộ để vẽ Pie Chart cho đẹp
-UPDATE apartments SET status = 'RENTED' WHERE apartment_id IN (1, 2, 5, 8, 12, 18);
-UPDATE apartments SET status = 'MAINTENANCE' WHERE apartment_id IN (3, 10);

@@ -100,7 +100,7 @@ public class ListingPanel extends JPanel {
         });
 
         // ── Table with RowSorter (FR-2.4 / FR-5.1) ───────────────────────────
-        String[] columns = {"ID", "Code", "Address", "Location", "Price ($)", "Bedrooms", "Area (m²)", "Category"};
+        String[] columns = {"ID", "Code", "Address", "Location", "Price ($)", "Bedrooms", "Area (m²)", "Category", "Status"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
@@ -159,11 +159,47 @@ public class ListingPanel extends JPanel {
             optionMenu.show(btnOption, 0, btnOption.getHeight());
         });
 
+        // ── Sort By Popup Menu ──
+        JPopupMenu sortMenu = new JPopupMenu();
+        JMenuItem sortPriceDesc = new JMenuItem("Price: High → Low");
+        JMenuItem sortPriceAsc  = new JMenuItem("Price: Low → High");
+        JMenuItem sortAreaDesc  = new JMenuItem("Area: Large → Small");
+        JMenuItem sortAreaAsc   = new JMenuItem("Area: Small → Large");
+        JMenuItem sortBedsDesc  = new JMenuItem("Bedrooms: Most → Least");
+        JMenuItem sortNewest    = new JMenuItem("Newest First");
+        JMenuItem sortOldest    = new JMenuItem("Oldest First");
+
+        // Column indices: 0=ID, 1=Code, 2=Address, 3=Location, 4=Price, 5=Bedrooms, 6=Area, 7=Category, 8=Status
+        sortPriceDesc.addActionListener(e -> { rowSorter.setSortKeys(java.util.List.of(new javax.swing.RowSorter.SortKey(4, javax.swing.SortOrder.DESCENDING))); });
+        sortPriceAsc .addActionListener(e -> { rowSorter.setSortKeys(java.util.List.of(new javax.swing.RowSorter.SortKey(4, javax.swing.SortOrder.ASCENDING))); });
+        sortAreaDesc .addActionListener(e -> { rowSorter.setSortKeys(java.util.List.of(new javax.swing.RowSorter.SortKey(6, javax.swing.SortOrder.DESCENDING))); });
+        sortAreaAsc  .addActionListener(e -> { rowSorter.setSortKeys(java.util.List.of(new javax.swing.RowSorter.SortKey(6, javax.swing.SortOrder.ASCENDING))); });
+        sortBedsDesc .addActionListener(e -> { rowSorter.setSortKeys(java.util.List.of(new javax.swing.RowSorter.SortKey(5, javax.swing.SortOrder.DESCENDING))); });
+        sortNewest   .addActionListener(e -> { rowSorter.setSortKeys(java.util.List.of(new javax.swing.RowSorter.SortKey(0, javax.swing.SortOrder.DESCENDING))); });
+        sortOldest   .addActionListener(e -> { rowSorter.setSortKeys(java.util.List.of(new javax.swing.RowSorter.SortKey(0, javax.swing.SortOrder.ASCENDING))); });
+
+        sortMenu.add(sortPriceDesc);
+        sortMenu.add(sortPriceAsc);
+        sortMenu.addSeparator();
+        sortMenu.add(sortAreaDesc);
+        sortMenu.add(sortAreaAsc);
+        sortMenu.addSeparator();
+        sortMenu.add(sortBedsDesc);
+        sortMenu.addSeparator();
+        sortMenu.add(sortNewest);
+        sortMenu.add(sortOldest);
+
+        JButton btnSort = createBtn("Sort By", new Color(142, 68, 173));
+        btnSort.addActionListener(e -> {
+            sortMenu.show(btnSort, 0, btnSort.getHeight());
+        });
+
         btnAdd.addActionListener(e -> handleAdd());
         btnRefresh.addActionListener(e -> resetFilters());
 
         actionPanel.add(btnAdd);    actionPanel.add(Box.createRigidArea(new Dimension(8, 0)));
         actionPanel.add(btnOption); actionPanel.add(Box.createRigidArea(new Dimension(8, 0)));
+        actionPanel.add(btnSort);   actionPanel.add(Box.createRigidArea(new Dimension(8, 0)));
         actionPanel.add(btnRefresh);
         actionPanel.add(Box.createHorizontalGlue());
 
@@ -256,9 +292,10 @@ public class ListingPanel extends JPanel {
         tableModel.setRowCount(0);
         if (list != null) {
             for (Apartment a : list) {
+                String rentalStatus = service.getRentalStatus(a.getId());
                 tableModel.addRow(new Object[]{
                     a.getId(), a.getListingCode(), a.getAddress(), a.getLocation(),
-                    a.getPrice(), a.getBedrooms(), a.getArea(), a.getCategory()
+                    a.getPrice(), a.getBedrooms(), a.getArea(), a.getCategory(), rentalStatus
                 });
             }
         }
@@ -524,14 +561,35 @@ public class ListingPanel extends JPanel {
         if (JOptionPane.showConfirmDialog(this, mainPanel, title,
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
             try {
+                double price = Double.parseDouble(txtPrice.getText().trim());
+                int bedrooms = Integer.parseInt(txtBedrooms.getText().trim());
+                int area = Integer.parseInt(txtArea.getText().trim());
+
+                // Price validation: reject negative/zero values
+                if (price <= 0) {
+                    JOptionPane.showMessageDialog(this, "Price must be greater than zero!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+                if (bedrooms <= 0) {
+                    JOptionPane.showMessageDialog(this, "Bedrooms must be greater than zero!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+                if (area <= 0) {
+                    JOptionPane.showMessageDialog(this, "Area must be greater than zero!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+
                 Apartment result = new Apartment(
                     apt != null ? apt.getId() : 0,
                     txtCode.getText().trim(),
                     txtAddress.getText().trim(),
                     cbLocation.getSelectedItem().toString(),
-                    Double.parseDouble(txtPrice.getText().trim()),
-                    Integer.parseInt(txtBedrooms.getText().trim()),
-                    Integer.parseInt(txtArea.getText().trim()),
+                    price,
+                    bedrooms,
+                    area,
                     ApartmentType.STANDARD, // Fallback Type for DB constraint
                     apt != null ? apt.getCreatedBy() : currentUser.getId(),
                     txtDesc.getText().trim()

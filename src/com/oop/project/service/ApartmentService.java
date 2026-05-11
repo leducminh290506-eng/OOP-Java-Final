@@ -2,13 +2,16 @@ package com.oop.project.service;
 
 import com.oop.project.model.Apartment;
 import com.oop.project.repository.ApartmentRepository;
+import com.oop.project.repository.ContractRepository;
 import java.util.List;
 
 public class ApartmentService {
     private final ApartmentRepository repository;
+    private final ContractRepository contractRepo;
 
     public ApartmentService(ApartmentRepository repository) {
         this.repository = repository;
+        this.contractRepo = new ContractRepository();
     }
 
     /** Lấy toàn bộ danh sách căn hộ */
@@ -19,6 +22,19 @@ public class ApartmentService {
     /** Lấy thông tin 1 căn hộ theo ID (Cho nút Detail) */
     public Apartment getById(int id) {
         return repository.findById(id);
+    }
+
+    /**
+     * Get real-time rental status for an apartment.
+     * Checks lease_contracts to determine if apartment is currently rented.
+     * Returns "Rented" or "Vacant".
+     */
+    public String getRentalStatus(int apartmentId) {
+        try {
+            return contractRepo.isApartmentCurrentlyRented(apartmentId) ? "Rented" : "Vacant";
+        } catch (Exception e) {
+            return "Unknown";
+        }
     }
 
     // --- CÁC HÀM SỬA LỖI CHO FAVORITE PANEL ---

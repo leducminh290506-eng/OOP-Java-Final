@@ -1,8 +1,10 @@
 package com.oop.project.service;
 
 import com.oop.project.model.Apartment;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,8 +19,11 @@ public class ExportService {
     }
 
     public void exportToCSV(List<Apartment> apartments, String filePath, AmenityProvider amenityProvider) throws IOException {
-        try (FileWriter writer = new FileWriter(filePath)) {
-            writer.append("ID,ListingCode,Address,Location,Price,Bedrooms,AreaSqft,Type,Category,Amenities\n");
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8)) {
+            // Write UTF-8 BOM so Excel recognises Vietnamese characters correctly
+            writer.write('\uFEFF');
+
+            writer.append("ID,ListingCode,Address,Location,Price,Bedrooms,AreaSqft,Type,Category,Status,Amenities\n");
             for (Apartment apt : apartments) {
                 List<String> amenities = (amenityProvider == null) ? Collections.emptyList() : amenityProvider.getAmenityNames(apt);
                 String amenityJoined = String.join(" | ", amenities);
@@ -32,6 +37,7 @@ public class ExportService {
                         .append(String.valueOf(apt.getArea())).append(",")
                         .append(csv(apt.getType().name())).append(",")
                         .append(csv(apt.getCategory())).append(",")
+                        .append(csv(apt.getStatus())).append(",")
                         .append(csv(amenityJoined))
                         .append("\n");
             }
