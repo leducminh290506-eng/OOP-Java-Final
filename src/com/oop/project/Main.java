@@ -1,7 +1,5 @@
 package com.oop.project;
 
-
-
 import com.oop.project.ui.LoginDialog;
 
 public class Main {
