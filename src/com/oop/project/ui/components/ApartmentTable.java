@@ -75,7 +75,7 @@ public class ApartmentTable extends JTable {
         DefaultTableCellRenderer areaRenderer = new DefaultTableCellRenderer() {
             @Override
             protected void setValue(Object value) {
-                setText(value + " sqft");
+                setText(value + " m²");
             }
         };
         areaRenderer.setHorizontalAlignment(JLabel.CENTER);

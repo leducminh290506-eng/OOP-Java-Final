@@ -5,21 +5,26 @@ import java.time.LocalDate;
 public class LeaseContract {
     private int contractId;
     private int apartmentId;
-    private int customerId;
+    private String customerName;
     private LocalDate startDate;
     private LocalDate endDate;
     private double monthlyRent;
     private double totalValue; // Doanh thu tổng của hợp đồng
+    private String notes;
 
-    public LeaseContract(int contractId, int apartmentId, int customerId, 
-                         LocalDate startDate, LocalDate endDate, double monthlyRent) {
+    public LeaseContract(int contractId, int apartmentId, String customerName, LocalDate startDate, LocalDate endDate, double monthlyRent, String notes) {
         this.contractId = contractId;
         this.apartmentId = apartmentId;
-        this.customerId = customerId;
+        this.customerName = customerName;
         this.startDate = startDate;
         this.endDate = endDate;
         this.monthlyRent = monthlyRent;
+        this.notes = notes;
         this.totalValue = calculateTotalValue();
+    }
+
+    public LeaseContract(int contractId, int apartmentId, String customerName, LocalDate startDate, LocalDate endDate, double monthlyRent) {
+        this(contractId, apartmentId, customerName, startDate, endDate, monthlyRent, "");
     }
 
     // Hàm tính tổng doanh thu dựa trên số tháng thuê
@@ -44,8 +49,8 @@ public class LeaseContract {
     public int getApartmentId() { return apartmentId; }
     public void setApartmentId(int apartmentId) { this.apartmentId = apartmentId; }
 
-    public int getCustomerId() { return customerId; }
-    public void setCustomerId(int customerId) { this.customerId = customerId; }
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
 
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { 
@@ -66,4 +71,6 @@ public class LeaseContract {
     }
 
     public double getTotalValue() { return totalValue; }
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
 }
